@@ -33,7 +33,7 @@ export function MessageContent({
         "max-w-190",
         from === "user"
           ? "max-w-170 bg-secondary rounded-md text-primary! p-3"
-          : "rounded-bl-md border-slate-200 bg-white text-slate-900",
+          : "rounded-bl-md ",
         className,
       )}
       {...props}

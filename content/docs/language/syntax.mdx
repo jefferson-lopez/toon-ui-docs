@@ -10,6 +10,9 @@ description: "Grammar examples for the most important ToonUI blocks."
 - Most containers end with `:`
 - Actions are explicit: `reply="..."` or `submit`
 - The syntax is compact on purpose so models can emit it reliably
+- Output must stay inside normal markdown plus optional `toon-ui` fenced blocks only
+- The model must not emit React, HTML, CSS, JavaScript, or component JSON
+- The model must use official components only and must not invent props
 
 ## Form example
 
@@ -100,6 +103,7 @@ The grammar is optimized for:
 
 ## Read next
 
-1. [Node Reference](/docs/language/node-reference)
-2. [Catalog](/docs/language/catalog)
-3. [Errors and Validation](/docs/reference/errors-and-validation)
+1. [AI Authoring Rules](/docs/language/ai-authoring-rules)
+2. [Node Reference](/docs/language/node-reference)
+3. [Catalog](/docs/language/catalog)
+4. [Errors and Validation](/docs/reference/errors-and-validation)

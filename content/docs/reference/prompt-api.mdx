@@ -95,6 +95,7 @@ It tells the model:
 - never invent components or props
 - never emit raw HTML or script-like content
 - never execute business actions directly
+- keep visible labels and titles in the user's language
 
 This is one of the most important prompt layers in the whole system.
 
@@ -147,3 +148,11 @@ Customize later ONLY when you understand:
 - what constraint you are changing
 - what generation behavior you expect to improve
 - what safety/consistency tradeoff you are accepting
+
+## Recommended authoring contract
+
+If you need one compact rule to copy into a system prompt, use this:
+
+> Output normal markdown plus valid `toon-ui` fenced blocks only. Use ONLY the official catalog and canonical syntax. Never invent components, props, or behavior. If unsure, simplify instead of improvising.
+
+For the full guide, see [AI Authoring Rules](/docs/language/ai-authoring-rules).

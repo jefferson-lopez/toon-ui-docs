@@ -3,109 +3,180 @@ import {
   ArrowRight,
   CheckCircle2,
   Code2,
-  FileCode2,
   ShieldCheck,
   Sparkles,
   Wand2,
 } from "lucide-react";
 import { LandingDemo } from "@/components/landing-demo";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { repoUrl } from "@/lib/shared";
 
 const benefits = [
   {
-    title: "Clearer AI output",
+    title: "Better than raw text",
     description:
-      "Instead of hoping the model writes ad-hoc React or vague JSON, you give it a focused UI language made for chat experiences.",
+      "Let the model show actions, forms, and next steps instead of long instructions inside the conversation.",
     icon: Wand2,
   },
   {
-    title: "Your app keeps control",
+    title: "Better data collection",
     description:
-      "ToonUI does not execute tools, mutate data, or decide business rules. Your app stays in charge of actions, APIs, auth, and side effects.",
+      "Ask for structured input in chat without sending users to a separate page or breaking the flow.",
     icon: ShieldCheck,
   },
   {
-    title: "Better user experience",
+    title: "Clearer user decisions",
     description:
-      "The model can present cards, choices, forms, and next steps that are easier to use than raw text alone.",
+      "Present choices, confirmations, and recommendations in a way that is easier to understand and act on.",
     icon: Sparkles,
   },
   {
-    title: "Safer than generated React",
+    title: "Real UI, predictable output",
     description:
-      "The model describes interface intent. Your renderer, components, and validation layer decide how that intent becomes UI.",
+      "The model writes ToonUI. Your product renders it with real components that match your interface and rules.",
     icon: Code2,
   },
 ];
 
-const comparisons = [
+
+const toonUiExample = [
+  'alert success "Product deleted":',
+  '  text "Candy was deleted successfully."',
+  'card "Recommended actions":',
+  '  text "Choose what you want to do next."',
+  '  button primary "Create product" reply="start-create-product"',
+  '  button secondary "View inventory" reply="show-products-again"',
+].join("\n");
+
+const comparisonRows = [
   {
-    title: "ToonUI",
-    summary: "A simple UI language for AI responses.",
-    bullets: [
-      "Best when the model should describe UI, not own your frontend",
-      "Typed interaction payloads for reply and submit actions",
-      "Works well when you want predictable UI inside chat",
-    ],
+    format: "ToonUI",
+    thinking: "Describe interface intent with a small, chat-first language.",
+    words: 30,
+    chars: 270,
+    note: "Smallest surface area in this example.",
   },
   {
-    title: "Generate React with AI",
-    summary: "Flexible, but easy to over-couple generation and product logic.",
-    bullets: [
-      "The model may produce code your app should not trust directly",
-      "Harder to keep design system, safety, and behavior boundaries clean",
-      "Useful for scaffolding, not ideal as a runtime UI protocol",
-    ],
+    format: "JSON UI",
+    thinking: "Think about structure, nesting, keys, arrays, and renderer conventions.",
+    words: 82,
+    chars: 908,
+    note: "About 63% more words and 70% more characters than ToonUI in this example.",
   },
   {
-    title: "Generate raw JSON",
-    summary: "Structured, but often too low-level for real UI conversations.",
-    bullets: [
-      "Usually needs custom schemas, parsers, and rendering conventions",
-      "Can become verbose and hard to teach in prompts",
-      "Good for machine contracts, weaker as a human-friendly UI language",
-    ],
+    format: "React UI",
+    thinking: "Think about components, props, handlers, layout, and implementation details.",
+    words: 45,
+    chars: 592,
+    note: "About 33% more words and 54% more characters than ToonUI in this example.",
   },
 ];
 
+function renderToonUiCode(code: string) {
+  return code.split("\n").map((line, index) => {
+    const indentMatch = line.match(/^(\s*)/);
+    const indent = indentMatch?.[0] ?? "";
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      return <div key={index}>&nbsp;</div>;
+    }
+
+    const stringMatches = [...trimmed.matchAll(/"([^"]*)"/g)];
+    const beforeString = trimmed.slice(
+      0,
+      stringMatches[0]?.index ?? trimmed.length,
+    );
+    const lastString = stringMatches[stringMatches.length - 1];
+    const afterLastString = lastString
+      ? trimmed.slice((lastString.index ?? 0) + lastString[0].length)
+      : "";
+    const parts = beforeString.trim().split(/\s+/).filter(Boolean);
+    const keyword = parts[0] ?? "";
+    const variant = parts[1] ?? "";
+    const tail = afterLastString.trim();
+
+    return (
+      <div key={index}>
+        <span className="text-muted-foreground/60">
+          {indent.replace(/ /g, " ")}
+        </span>
+        {keyword ? <span className="text-sky-700">{keyword}</span> : null}
+        {variant ? <span className="text-emerald-700"> {variant}</span> : null}
+        {stringMatches.map((match, matchIndex) => (
+          <span key={matchIndex} className="text-amber-700">
+            {matchIndex === 0 && (keyword || variant) ? " " : ""}
+            {match[0]}
+            {matchIndex < stringMatches.length - 1 ? " " : ""}
+          </span>
+        ))}
+        {tail ? (
+          <span className="text-violet-700">
+            {stringMatches.length || keyword || variant ? " " : ""}
+            {tail}
+          </span>
+        ) : null}
+      </div>
+    );
+  });
+}
+
 const useCases = [
-  "Product search panels inside chat",
-  "Approval flows with clear next actions",
-  "Forms the user can complete without leaving the conversation",
-  "Decision support UI where the model explains and the user chooses",
+  "Guide users with clear next steps",
+  "Collect structured data inside chat",
+  "Show confirmations before important actions",
+  "Turn model output into usable interface blocks",
+  "Render UI from model intent instead of fragile generated code",
+  "Make conversational flows feel like part of the product",
 ];
 
 export default function HomePage() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-16 px-6 py-10 md:px-10">
-      <header className="flex items-center justify-between">
+      <header className="flex items-center justify-between gap-4">
         <Link
           href="/"
           className="text-xl font-semibold tracking-tight text-foreground"
         >
           Toon<span className="text-primary">UI</span>
         </Link>
+
+        <nav className="flex flex-wrap items-center justify-end gap-2">
+          <Button asChild size="sm">
+            <Link href="/playground">Try playground</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/docs">Docs</Link>
+          </Button>
+          <Button variant="outline" size="sm" disabled>
+            AI Chat · Soon
+          </Button>
+          <ThemeToggle />
+        </nav>
       </header>
 
       <section className="space-y-8">
         <div className="mx-auto flex max-w-4xl flex-col items-center space-y-6 text-center">
           <span className="inline-flex w-fit rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground">
-            UI language for AI products
+            UI language for AI interfaces
           </span>
 
           <div className="space-y-4">
             <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
               Give your AI a{" "}
-              <span className="text-primary">simple UI language</span>, not
-              control of your app.
+              <span className="text-primary">language for building interfaces</span>{" "}
+              inside chat.
             </h1>
 
             <p className="mx-auto max-w-3xl text-base text-muted-foreground md:text-lg">
-              ToonUI lets an LLM describe helpful interface blocks inside a
-              conversation—cards, forms, buttons, choices, summaries—while your
-              application keeps ownership of tools, permissions, API calls,
-              persistence, and business rules.
+              ToonUI lets an LLM respond with forms, buttons, choices,
+              confirmations, and structured UI blocks so users can understand
+              what to do next and provide data more easily.
+            </p>
+            <p className="mx-auto max-w-3xl text-sm text-muted-foreground md:text-base">
+              Your app renders the UI and keeps control of actions, APIs,
+              validation, permissions, and business rules.
             </p>
           </div>
 
@@ -114,6 +185,11 @@ export default function HomePage() {
               <Link href="/docs">
                 Read the docs
                 <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/playground">
+                Try playground
               </Link>
             </Button>
             <Button asChild variant="outline">
@@ -127,65 +203,137 @@ export default function HomePage() {
         <LandingDemo />
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {benefits.map(({ title, description, icon: Icon }) => (
-          <article
-            key={title}
-            className="rounded-2xl border bg-card p-5 shadow-sm"
-          >
-            <div className="mb-4 inline-flex rounded-lg border p-2 text-primary">
-              <Icon className="size-4" />
-            </div>
-            <h2 className="mb-2 font-semibold">{title}</h2>
-            <p className="text-sm text-muted-foreground">{description}</p>
-          </article>
-        ))}
+      <section className="rounded-3xl border bg-card">
+        <div className="grid gap-0 md:grid-cols-2 xl:grid-cols-4">
+          {benefits.map(({ title, description, icon: Icon }, index) => (
+            <article
+              key={title}
+              className="p-5 md:p-6 xl:p-6"
+            >
+              <div className="mb-4 inline-flex rounded-lg border p-2 text-primary">
+                <Icon className="size-4" />
+              </div>
+              <h2 className="mb-2 font-semibold">{title}</h2>
+              <p className="text-sm text-muted-foreground">{description}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <article className="rounded-3xl border bg-card p-6 shadow-sm">
+      <section className="rounded-3xl border bg-card p-6 md:p-8">
+        <div className="max-w-3xl">
+          <div className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
+            <Code2 className="size-4" />
+            The AI writes ToonUI. Your product renders the interface.
+          </div>
+          <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
+            Write interface intent once, then turn it into real UI inside your product.
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground md:text-base">
+            Instead of inventing React or vague JSON, the model returns ToonUI. Your renderer transforms that response into real UI that matches your product and interaction rules.
+          </p>
+        </div>
+
+        <div className="mt-8 grid gap-4 lg:grid-cols-2">
+          <div className="overflow-hidden rounded-2xl border">
+            <div className="border-b px-4 py-3 text-sm font-medium">ToonUI code</div>
+            <pre className="overflow-x-auto bg-transparent p-4 text-sm leading-6 text-foreground">
+              <code>{renderToonUiCode(toonUiExample)}</code>
+            </pre>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border">
+            <div className="border-b px-4 py-3 text-sm font-medium">Rendered UI</div>
+            <div className="space-y-4 p-4">
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
+                <p className="text-sm font-medium">Product deleted</p>
+                <p className="mt-1 text-sm text-emerald-900/80">
+                  Candy was deleted successfully.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border p-4">
+                <p className="font-medium">Recommended actions</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Choose what you want to do next.
+                </p>
+
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Button size="sm">Create product</Button>
+                  <Button size="sm" variant="outline">
+                    View inventory
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-3xl border bg-card p-6 md:p-8">
+        <div className="max-w-3xl">
+          <div className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
+            <ShieldCheck className="size-4" />
+            Less UI overhead for the model
+          </div>
+          <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
+            ToonUI gives the model less to write and less to think about.
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground md:text-base">
+            With ToonUI, the model focuses on interface intent. It does not need to spend as much output on JSON nesting, component trees, props, or implementation details. In the example above, ToonUI is materially shorter than the equivalent JSON UI and React UI representations.
+          </p>
+        </div>
+
+        <div className="mt-8 overflow-hidden rounded-2xl border">
+          <div className="grid border-b bg-muted/30 md:grid-cols-[1.1fr_1.8fr_0.7fr_0.7fr_1.4fr]">
+            <div className="p-4 text-sm font-medium">Format</div>
+            <div className="p-4 text-sm font-medium">What the model has to think about</div>
+            <div className="p-4 text-sm font-medium">Words</div>
+            <div className="p-4 text-sm font-medium">Chars</div>
+            <div className="p-4 text-sm font-medium">Takeaway</div>
+          </div>
+
+          {comparisonRows.map((row, index) => (
+            <div
+              key={row.format}
+              className="grid border-b last:border-b-0 md:grid-cols-[1.1fr_1.8fr_0.7fr_0.7fr_1.4fr]"
+            >
+              <div className="p-4 text-sm font-medium">{row.format}</div>
+              <div className="p-4 text-sm text-muted-foreground">{row.thinking}</div>
+              <div className="p-4 text-sm text-muted-foreground">{row.words}</div>
+              <div className="p-4 text-sm text-muted-foreground">{row.chars}</div>
+              <div className="p-4 text-sm text-muted-foreground">{row.note}</div>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-4 text-xs leading-5 text-muted-foreground">
+          Comparison based on the same sample UI expressed three ways: ToonUI, a JSON UI schema, and React component markup. Savings vary by renderer and prompt, but the pattern is consistent: ToonUI removes structural noise so the model can focus on the interaction itself.
+        </p>
+      </section>
+
+      <section className="rounded-3xl border bg-card p-6 md:p-8">
+        <div className="max-w-3xl">
           <div className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
             <CheckCircle2 className="size-4" />
-            Best fit
+            What ToonUI helps AI do better
           </div>
-          <h2 className="text-2xl font-semibold tracking-tight">
-            Use ToonUI when your AI should guide the experience, not run the
-            application.
+          <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
+            Give AI a better way to guide users and collect information inside the conversation.
           </h2>
-          <ul className="mt-5 space-y-3 text-sm text-muted-foreground">
-            {useCases.map((useCase) => (
-              <li key={useCase} className="flex gap-3">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>{useCase}</span>
-              </li>
-            ))}
-          </ul>
-        </article>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground md:text-base">
+            ToonUI helps AI move beyond plain text by turning model intent into usable interface blocks your product can render, validate, and handle safely.
+          </p>
+        </div>
 
-        <article className="rounded-3xl border bg-card p-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
-            <FileCode2 className="size-4" />
-            Where ToonUI fits
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {comparisons.map((item) => (
-              <div
-                key={item.title}
-                className="rounded-2xl border bg-background p-4"
-              >
-                <h3 className="font-semibold">{item.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {item.summary}
-                </p>
-                <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-                  {item.bullets.map((bullet) => (
-                    <li key={bullet}>• {bullet}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </article>
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
+          {useCases.map((useCase) => (
+            <div key={useCase} className="flex gap-3 rounded-2xl border p-4">
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+              <p className="text-sm text-muted-foreground">{useCase}</p>
+            </div>
+          ))}
+        </div>
       </section>
     </main>
   );

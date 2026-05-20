@@ -82,7 +82,9 @@ function slugify(value: string) {
 }
 
 function DemoToonText({ node }: ToonTextComponentProps) {
-  return <p className="m-0 text-sm leading-6 text-slate-600">{node.value}</p>;
+  return (
+    <p className="m-0 text-sm leading-6 text-muted-foreground">{node.value}</p>
+  );
 }
 
 function DemoToonBadge({ node }: ToonBadgeComponentProps) {
@@ -128,7 +130,7 @@ function DemoToonItem({ node, children }: ToonItemComponentProps) {
 
 function DemoToonCard({ node, children }: ToonCardComponentProps) {
   return (
-    <Card className="gap-0 rounded-2xl border">
+    <Card className="gap-0 bg-muted/50 border">
       <CardHeader className="pb-3">
         <CardTitle>{node.title}</CardTitle>
       </CardHeader>
@@ -139,16 +141,13 @@ function DemoToonCard({ node, children }: ToonCardComponentProps) {
 
 function DemoToonConfirm({ node, children }: ToonConfirmComponentProps) {
   return (
-    <Card className="gap-0 rounded-2xl border">
+    <Card className="gap-0 bg-muted/50 border">
       <CardHeader className="pb-3">
         <CardTitle>{node.title}</CardTitle>
-        <FieldDescription>
-          Confirma la acción para que el host decida qué hacer después.
-        </FieldDescription>
       </CardHeader>
       <CardFooter
         className={cn(
-          "grid items-stretch gap-3 border-t-0 bg-transparent pt-0",
+          "grid items-stretch gap-3 border-t-0 pt-0",
           node.variant === "danger" && "text-destructive",
           node.variant === "warning" && "text-amber-600",
         )}
@@ -201,7 +200,7 @@ function DemoToonForm({
   disabled,
 }: ToonFormComponentProps) {
   return (
-    <Card className="gap-0 rounded-2xl border">
+    <Card className="gap-0 bg-muted/50 border">
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -487,6 +486,8 @@ export function LandingDemo() {
   const [flowStep, setFlowStep] = useState<FlowStep>("inventory-request");
   const [isInView, setIsInView] = useState(false);
   const [hasCompletedPlayback, setHasCompletedPlayback] = useState(false);
+  const [isTimelineCompleted, setIsTimelineCompleted] = useState(false);
+  const [isFinalMessageComplete, setIsFinalMessageComplete] = useState(false);
   const cleanupRef = useRef<(() => void) | null>(null);
   const resetTimerRef = useRef<number | null>(null);
 
@@ -562,6 +563,22 @@ export function LandingDemo() {
   }, []);
 
   useEffect(() => {
+    if (
+      !isTimelineCompleted ||
+      !isFinalMessageComplete ||
+      hasCompletedPlayback
+    ) {
+      return;
+    }
+
+    setHasCompletedPlayback(true);
+    resetTimerRef.current = window.setTimeout(() => {
+      resetConversation();
+      resetTimerRef.current = null;
+    }, 150);
+  }, [hasCompletedPlayback, isFinalMessageComplete, isTimelineCompleted]);
+
+  useEffect(() => {
     const element = containerRef.current;
     if (!element || hasCompletedPlayback) return;
 
@@ -585,6 +602,8 @@ export function LandingDemo() {
     setStatusText(INITIAL_STATUS_TEXT);
     setLastInteraction(INITIAL_LAST_INTERACTION);
     setFlowStep("inventory-request");
+    setIsTimelineCompleted(false);
+    setIsFinalMessageComplete(false);
   }
 
   function appendInteractionMessage(content: string) {
@@ -731,12 +750,14 @@ export function LandingDemo() {
       const price = String(payload.values.price ?? "0.00");
       const stock = String(payload.values.stock ?? "0");
       setFlowStep("completed");
+      setIsFinalMessageComplete(false);
       streamAssistantMessage(
         getCreatedProductMessage(name, price, stock),
         () => {
           setStatusText(
             "The host received the structured submit and created the product.",
           );
+          setIsFinalMessageComplete(true);
         },
       );
       return;
@@ -842,25 +863,24 @@ export function LandingDemo() {
         steps={steps}
         isActive={isInView && !hasCompletedPlayback}
         onStatusChange={(status) => {
-          if (status !== "completed" || hasCompletedPlayback) return;
+          if (status !== "completed") return;
 
-          setHasCompletedPlayback(true);
-          resetTimerRef.current = window.setTimeout(() => {
-            resetConversation();
-          }, 400);
+          setIsTimelineCompleted(true);
         }}
-        baseWidth={1040}
-        baseHeight={720}
-        frameBorderRadius="lg"
+        frameBorderRadius="none"
         showControls={false}
-        cursor={{ enabled: true, hideNativeCursor: false }}
-        className="bg-transparent"
+        cursor={{
+          enabled: true,
+          hideNativeCursor: false,
+          size: "xxl",
+          mobileSize: "xxl",
+        }}
       >
-        <div className="flex h-[720px] w-[1040px] flex-col overflow-hidden text-slate-900">
+        <div className="flex border rounded-md bg-background h-full w-full flex-col overflow-hidden text-muted-foreground">
           <div className="border-b px-3 py-2">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-lg font-semibold tracking-tight text-slate-950">
+                <p className="text-lg font-semibold tracking-tight text-primary">
                   Toon<span className="text-primary">-UI</span> Demo
                 </p>
               </div>
@@ -913,7 +933,7 @@ export function LandingDemo() {
                 <ConversationScrollButton />
               </Conversation>
 
-              <div className="pl-2 pb-4 pr-4">
+              <div className="pl-2 pb-2 pr-2">
                 <form
                   className="flex items-center gap-3 rounded-md border p-1"
                   onSubmit={(event) => {
@@ -926,7 +946,7 @@ export function LandingDemo() {
                     value={composerValue}
                     onChange={(event) => setComposerValue(event.target.value)}
                     placeholder="Type the next action you want to take..."
-                    className="h-10 rounded-md border-0 bg-transparent shadow-none focus-visible:ring-0"
+                    className="h-10 rounded-md border-0 bg-transparent! shadow-none focus-visible:ring-0"
                   />
 
                   <Button

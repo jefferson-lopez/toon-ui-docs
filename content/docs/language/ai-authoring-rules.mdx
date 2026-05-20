@@ -1,0 +1,269 @@
+---
+title: "AI Authoring Rules"
+description: "Compact rules for models that generate ToonUI inside markdown."
+---
+
+This is the shortest correct mental model:
+
+> The AI writes normal markdown plus valid `toon-ui` blocks, using ONLY the official catalog and canonical syntax.
+
+If the model is uncertain, it must simplify.
+It must NOT improvise.
+
+## Quick path
+
+1. Write normal markdown when plain prose is enough.
+2. Add a fenced `toon-ui` block when the user needs structured UI.
+3. Use only official components, official variants, and canonical syntax.
+4. If unsure, fall back to a smaller safe subset like `card`, `text`, `table`, `form`, `confirm`, or `list`.
+
+## Hard rules
+
+- Output **markdown + optional `toon-ui` fenced blocks only**
+- Never output React
+- Never output HTML
+- Never output CSS
+- Never output JavaScript
+- Never output component JSON
+- Never invent components
+- Never invent props
+- Never emit raw HTML or scripts inside `text`
+- Never execute business actions directly
+
+## Official components only
+
+Allowed today:
+
+- `text`
+- `heading`
+- `separator`
+- `card`
+- `form`
+- `field`
+- `button`
+- `confirm`
+- `list`
+- `item`
+- `badge`
+- `alert`
+- `table`
+- `empty`
+- `tabs`
+- `accordion`
+- `dialog`
+- `sheet`
+- `popover`
+- `tooltip`
+- `progress`
+- `loading`
+- `toast`
+- `breadcrumb`
+- `pagination`
+- `menu`
+- `command`
+- `chart`
+
+Never invent pseudo-components like:
+
+- `header`
+- `footer`
+- `subtitle`
+- `description`
+- `input`
+- `modal`
+- `stack`
+- `grid`
+- `divider`
+
+## Canonical syntax
+
+```txt
+text "Visible text"
+heading <1-6> "Visible text"
+separator
+separator horizontal
+separator vertical
+card "Title":
+form "Title":
+field <name> <fieldType> "Label" [placeholder="..."] [required]
+button <variant> "Label" reply="Value"
+button <variant> "Label" submit
+confirm <variant> "Title":
+list "Title":
+item "Title":
+badge "Label" <variant>
+alert <variant> "Title":
+table "Title":
+empty "Title":
+tabs "Title":
+accordion "Title":
+dialog "Title":
+sheet "Title" side="left|right|top|bottom":
+popover "Title":
+tooltip "Visible text"
+progress "Label" value=<number> max=<number>
+loading "Visible text"
+toast <variant> "Visible text"
+breadcrumb:
+pagination page=<number> totalPages=<number>
+menu "Title":
+command "Title":
+chart <type> "Title":
+```
+
+## Required rules by component
+
+## Quoted titles
+
+These nodes always require a quoted title:
+
+- `card`
+- `form`
+- `confirm`
+- `list`
+- `item`
+- `alert`
+- `table`
+- `empty`
+- `tabs`
+- `accordion`
+- `dialog`
+- `sheet`
+- `popover`
+- `menu`
+- `command`
+- `chart`
+
+## Required structure
+
+| Component | Required rule |
+|---|---|
+| `button` | Must include variant, label, and either `reply="..."` or `submit` |
+| `form` | Must include title, one or more `field` nodes, and one submit button |
+| `alert` | Must include variant, title, `:`, and nested children |
+| `empty` | Must include title, `:`, and nested children |
+| `progress` | Must include label, `value=<number>`, and `max=<number>` |
+| `pagination` | Must include `page=<number>` and `totalPages=<number>` |
+| `badge` | Never has children and never takes a `title` prop |
+
+## Variants and families
+
+### Button variants
+
+- `primary`
+- `secondary`
+- `danger`
+- `ghost`
+- `outline`
+
+### Badge variants
+
+- `success`
+- `warning`
+- `danger`
+- `neutral`
+- `info`
+
+### Alert variants
+
+- `info`
+- `success`
+- `warning`
+- `danger`
+
+### Confirm variants
+
+- `neutral`
+- `info`
+- `warning`
+- `danger`
+- `success`
+
+### Chart types
+
+- `bar`
+- `line`
+- `area`
+- `pie`
+
+### Field types
+
+- `text`
+- `email`
+- `number`
+- `password`
+- `date`
+- `time`
+- `textarea`
+- `select`
+- `checkbox`
+- `radio`
+- `switch`
+- `combobox`
+- `otp`
+- `slider`
+- `multiselect`
+
+## Table rules
+
+Tables must use:
+
+- `columns:`
+- `row:`
+
+And every column and cell should be quoted.
+This matters MOST when values contain commas, currency, or large numbers.
+
+Correct example:
+
+```md
+table "Sales":
+  columns: "Date", "Sale number", "Total", "Status"
+  row: "May 14", "177877222574876", "$ 387.45", "Completed"
+```
+
+## UI decision rules
+
+Prefer ToonUI instead of plain markdown when the user needs to:
+
+- choose
+- confirm
+- complete structured data
+- view structured results
+- compare values
+- navigate options
+
+Decision defaults:
+
+- if 2 or more structured inputs are needed, use `form`
+- if there are multiple results, prefer `table` or `list`
+- if one entity needs a next action, prefer `card` plus buttons
+- if the action is destructive, prefer `confirm danger`
+- if the action is risky but not destructive, prefer `confirm warning`
+
+Never ask “do you want me to build a UI?” when it is already obvious that UI is the right response.
+
+## Composition rules
+
+- Prioritize useful UI, not explanation about UI
+- Prefer one focused ToonUI block per intent
+- Keep actions close to the data they affect
+- Prefer simple trees over unnecessary nesting
+- Use `empty` for empty states
+- Use `chart` only for trend/comparison analysis
+- If syntax confidence drops, fall back to simpler valid nodes
+
+## Language rule
+
+Prompt instructions may be in English, but visible UI copy should follow the user's language:
+
+- labels
+- titles
+- button text
+- field labels
+
+## Related docs
+
+1. [Syntax](/docs/language/syntax)
+2. [Catalog](/docs/language/catalog)
+3. [Prompt API](/docs/reference/prompt-api)
