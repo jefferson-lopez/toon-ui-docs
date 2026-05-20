@@ -1,0 +1,83 @@
+---
+title: "Vercel AI SDK"
+description: "Recommended host-first integration pattern with useChat-style message state."
+---
+
+The important rule with Vercel AI SDK is simple:
+
+> Let the model generate ToonUI, but let your app keep the chat state and side effects.
+
+## Recommended pattern
+
+Use `toon.messages.toUIMessage(payload)` to append structured user intent back into `useChat`-style state.
+
+```tsx
+onReply={(payload) => {
+  const next = toon.messages.toUIMessage(payload);
+  append(next);
+}}
+```
+
+## Why this matters
+
+This keeps three things separate:
+
+- the model output
+- the rendered interaction surface
+- the app-owned message loop
+
+## When to use `toModelMessage`
+
+If your host loop expects a compact normalized user message for the next model turn, use:
+
+```ts
+const next = toon.messages.toModelMessage(payload);
+```
+
+That gives you:
+
+- `content` for the model
+- `displayContent` for UI
+- the original typed `payload`
+
+## Practical rule
+
+- use `toUIMessage()` for UI state
+- use `toModelMessage()` for LLM loop integration
+
+## What ToonUI already resolves vs what you still compose
+
+| Need | Resolved by ToonUI? | How |
+|------|----------------------|-----|
+| Typed reply payload | Yes | `toon.events.reply()` / UI handlers |
+| Typed submit payload | Yes | `toon.events.submit()` / UI handlers |
+| Convert payload to UI message | Yes | `toon.messages.toUIMessage()` |
+| Convert payload to model message | Yes | `toon.messages.toModelMessage()` |
+| Human display label from a ToonUI payload | Yes | `toon.messages.toDisplayContent()` |
+| Canonical ToonUI system prompt | Yes | `toon.prompt` |
+| Read plain text from any arbitrary AI SDK `UIMessage` | No | host app responsibility |
+| Prefer `metadata.displayContent` when rendering stored user messages | No | host app responsibility |
+| Combine your app system prompt with ToonUI protocol prompt | No | host app responsibility |
+
+## Recommended composition
+
+Use this mental model:
+
+- ToonUI owns the **protocol**
+- your app owns the **message history**
+- AI SDK owns the **transport and message loop**
+
+So the right composition is:
+
+```ts
+const system = prependToonProtocolPrompt(systemPrompt, toon.prompt);
+```
+
+ToonUI gives you the protocol prompt.
+
+Your app still decides how to merge that prompt with the rest of your system instructions and how to read arbitrary stored `UIMessage` objects.
+
+## Read next
+
+1. [Events and Messages](/docs/reference/events-and-messages)
+2. [React Runtime and Hooks](/docs/reference/react-runtime-and-hooks)
