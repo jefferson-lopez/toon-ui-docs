@@ -14,27 +14,18 @@ export function ThemeToggle() {
   }, []);
 
   const isDark = mounted && resolvedTheme === "dark";
+  const nextTheme = isDark ? "light" : "dark";
+  const label = isDark ? "Switch to light theme" : "Switch to dark theme";
 
   return (
-    <div className="flex items-center gap-2">
-      <Button
-        type="button"
-        variant={isDark ? "outline" : "default"}
-        size="icon"
-        aria-label="Switch to light theme"
-        onClick={() => setTheme("light")}
-      >
-        <Sun className="size-4" />
-      </Button>
-      <Button
-        type="button"
-        variant={isDark ? "default" : "outline"}
-        size="icon"
-        aria-label="Switch to dark theme"
-        onClick={() => setTheme("dark")}
-      >
-        <Moon className="size-4" />
-      </Button>
-    </div>
+    <Button
+      type="button"
+      variant="outline"
+      size="icon"
+      aria-label={label}
+      onClick={() => setTheme(nextTheme)}
+    >
+      {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+    </Button>
   );
 }

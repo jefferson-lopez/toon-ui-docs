@@ -9,6 +9,7 @@ description: "Grammar examples for the most important ToonUI blocks."
 - Nested blocks use indentation
 - Most containers end with `:`
 - Actions are explicit: `reply="..."` or `submit`
+- Some parents require structural child nodes like `crumb`, `action`, `tab`, `section`, `series`, and `point`
 - The syntax is compact on purpose so models can emit it reliably
 - Output must stay inside normal markdown plus optional `toon-ui` fenced blocks only
 - The model must not emit React, HTML, CSS, JavaScript, or component JSON
@@ -74,14 +75,23 @@ menu "Quick actions":
   action "Start sale" reply="start-sale"
 ```
 
+## Analytics example
+
+```txt
+chart bar "Weekly sales":
+  series "Store A":
+    point "Mon" 24
+    point "Tue" 31
+```
+
 ## Field examples
 
 ```txt
 field email email "Email" placeholder="name@company.com" required
 field category select "Category" options="Beverages|Snacks|Home"
 field tags multiselect "Tags" options="Popular|Fragile|Imported"
-field active switch "Active" value=true
-field score slider "Score" min=0 max=10 step=1 value=7
+field active switch "Active" value="true"
+field score slider "Score" min=0 max=10 step=1 value="7"
 ```
 
 ## Syntax design principles
@@ -98,12 +108,13 @@ The grammar is optimized for:
 - forgetting the trailing `:` on container nodes
 - creating a `form` without a submit button
 - using `select`, `radio`, or `multiselect` without `options`
+- using `action` without `reply="..."` or `submit`
 - putting raw HTML in `text`
 - treating ToonUI like arbitrary markdown instead of a constrained language
 
 ## Read next
 
-1. [AI Authoring Rules](/docs/language/ai-authoring-rules)
-2. [Node Reference](/docs/language/node-reference)
-3. [Catalog](/docs/language/catalog)
-4. [Errors and Validation](/docs/reference/errors-and-validation)
+1. [Complete Syntax Reference](/docs/language/complete-syntax-reference)
+2. [AI Authoring Rules](/docs/language/ai-authoring-rules)
+3. [Node Reference](/docs/language/node-reference)
+4. [Catalog](/docs/language/catalog)

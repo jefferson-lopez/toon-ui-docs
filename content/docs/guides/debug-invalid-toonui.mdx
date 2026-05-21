@@ -1,0 +1,131 @@
+---
+title: "Debug Invalid ToonUI"
+description: "Practical guide for understanding parser and validator failures and fixing the most common ToonUI mistakes."
+---
+
+When ToonUI is invalid, do NOT guess.
+
+Parse it.
+Validate it.
+Read the exact failure.
+
+## The debugging loop
+
+```ts
+const blocks = toon.extractBlocks(content);
+
+for (const block of blocks) {
+  const ast = toon.parse(block.raw);
+  const result = toon.validate(ast);
+
+  if (!result.ok) {
+    console.error(result.errors);
+  }
+}
+```
+
+## The most common failure classes
+
+### 1. Missing required field
+
+Example:
+
+```txt
+form "Create product":
+  button primary "Create" submit
+```
+
+Why it fails:
+
+- forms need at least one `field`
+
+### 2. Invalid nesting
+
+Example:
+
+```txt
+list "Products":
+  text "Not allowed here"
+```
+
+Why it fails:
+
+- `list` can only contain `item`
+
+### 3. Invalid syntax
+
+Example:
+
+```txt
+button primary "Create product" "start-create-product"
+```
+
+Why it fails:
+
+- button actions must use `reply="..."` or `submit`
+
+### 4. Invalid strict node shape
+
+Example:
+
+```txt
+alert "Low stock"
+```
+
+Why it fails:
+
+- `alert` needs variant + title + `:` + children
+
+### 5. Unsafe content
+
+Example:
+
+```txt
+text "<script>alert('xss')</script>"
+```
+
+Why it fails:
+
+- raw script-like HTML is not allowed in `text`
+
+## Table debugging rule
+
+If a table behaves strangely, quote every column and every cell.
+
+Bad:
+
+```txt
+row: May 09, $ 8,155.35, Completed
+```
+
+Better:
+
+```txt
+row: "May 09", "$ 8,155.35", "Completed"
+```
+
+## Field debugging rule
+
+If a field default value is behaving strangely, check `value="..."`.
+
+Correct:
+
+```txt
+field active switch "Active" value="true"
+field score slider "Score" min=0 max=10 step=1 value="7"
+```
+
+## Recommended workflow in CI
+
+Use parsing + validation for:
+
+- fixture tests
+- golden examples
+- generated output checks
+- debugging prompt regressions
+
+## Read next
+
+1. [Errors and Validation](/docs/reference/errors-and-validation)
+2. [Complete Syntax Reference](/docs/language/complete-syntax-reference)
+3. [Build a Real ToonUI Flow](/docs/guides/build-a-real-flow)

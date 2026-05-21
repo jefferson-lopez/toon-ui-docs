@@ -1,0 +1,222 @@
+---
+title: "Full Generated Prompt"
+description: "Advanced reference for the canonical ToonUI prompt and how it fits into your system prompt."
+---
+
+This page is the ADVANCED reference for `toon.prompt`.
+
+Use it when you need:
+
+- the architectural role of `toon.prompt`
+- the current generated prompt shape
+- a safe way to combine it with app-specific instructions
+
+## Quick answer
+
+Most teams should NOT start by reading the entire raw prompt.
+
+Start with:
+
+```ts
+import { createToonProtocol } from '@toon-ui/core';
+
+const toon = createToonProtocol();
+
+const system = [
+  toon.prompt,
+  'You are helping users compare products.',
+  'Use ToonUI when structured UI reduces friction.',
+  'Available tools:',
+  '- searchProducts(query)',
+].join('\n\n');
+```
+
+That is the correct integration shape.
+
+## What `toon.prompt` is
+
+`toon.prompt` is the canonical instruction set that teaches the model:
+
+- what ToonUI exists
+- how the syntax works
+- how replies and submits work
+- what fallback behavior to use
+- what safety rules to obey
+- what invalid patterns to avoid
+
+## What `toon.prompt` is NOT
+
+It is NOT:
+
+- your business logic
+- your tool policy
+- your domain instructions
+- your app persona
+
+Those belong in the rest of your `system` prompt AFTER `toon.prompt`.
+
+## Recommended composition
+
+Use this layering:
+
+| Layer | Responsibility |
+|---|---|
+| `toon.prompt` | Canonical ToonUI contract |
+| App instructions | Domain behavior and task framing |
+| Tool list / tool policy | What your app can actually do |
+
+Example:
+
+```ts
+const system = [
+  toon.prompt,
+  'You are helping users compare products.',
+  'Use ToonUI when structured UI reduces friction.',
+  'Available tools:',
+  '- searchProducts(query)',
+].join('\n\n');
+```
+
+## Why not show only the raw prompt in Quickstart
+
+Because the raw prompt is a REFERENCE artifact, not the best learning path.
+
+Quickstart should teach:
+
+1. where `toon.prompt` goes
+2. what problem it solves
+3. what the host app still owns
+
+The raw prompt is useful later for:
+
+- auditing
+- debugging generation behavior
+- understanding why the model emitted certain UI
+- customizing prompt composition
+
+## Current prompt layers
+
+The current prompt is composed from these parts:
+
+| Prompt layer | Purpose |
+|---|---|
+| Component rules | Allowed components and variants |
+| Syntax rules | Canonical grammar and structural constraints |
+| Interaction rules | `reply` / `submit` contract |
+| Composition guidance | How to choose and arrange UI |
+| Form guidance | Better structured data capture |
+| Fallback rules | What to do when uncertain |
+| Safety rules | What must never be emitted |
+| UI decision policy | When ToonUI should be preferred over prose |
+| Self-check | Final syntax reminders |
+| Examples | Valid and invalid patterns |
+
+## How to inspect the exact prompt at runtime
+
+If you want the exact string for the current installed version, inspect it directly:
+
+```ts
+import { createToonProtocol } from '@toon-ui/core';
+
+const toon = createToonProtocol();
+
+console.log(toon.prompt);
+```
+
+That is the safest way to avoid documentation drift.
+
+## Current generated prompt reference
+
+The current canonical prompt is generated from the prompt helpers in `@toon-ui/core`.
+
+<details>
+<summary>Show the current generated prompt structure</summary>
+
+```txt
+You are generating ToonUI for an AI-native app.
+Your job is to reduce friction for the user by turning structured intent into structured UI whenever it helps.
+
+[component rules]
+[syntax rules]
+[interaction rules]
+[composition guidance]
+[form guidance]
+[fallback rules]
+[safety rules]
+[UI decision policy]
+[self-check]
+[valid and invalid examples]
+```
+
+</details>
+
+## When to customize
+
+Customize only when you understand the tradeoff.
+
+Good reasons:
+
+- your app needs stronger safety emphasis
+- your app needs stronger form-generation behavior
+- your app needs additional domain instructions
+
+Bad reasons:
+
+- “the prompt looks long”
+- “we want to rewrite all rules from scratch”
+- “we want to remove safety/fallback sections without testing”
+
+## What NOT to do
+
+### Do not replace `toon.prompt` with ad-hoc prose
+
+Bad:
+
+```ts
+const system = [
+  'Generate some UI in markdown.',
+  'Maybe use buttons and forms.',
+].join('\n\n');
+```
+
+Why it is bad:
+
+- you lose the canonical syntax
+- you lose fallback behavior
+- you lose invalid-pattern guidance
+
+### Do not mix business rules inside ToonUI rules
+
+Bad:
+
+```ts
+const system = [
+  toon.prompt,
+  'Always execute product deletion immediately.',
+].join('\n\n');
+```
+
+Why it is bad:
+
+- ToonUI describes interaction
+- the host app owns behavior and execution
+
+### Do not teach the model tools before the UI contract
+
+Prefer:
+
+```ts
+const system = [
+  toon.prompt,
+  'Available tools:',
+  '- searchProducts(query)',
+].join('\n\n');
+```
+
+That keeps the language contract first and app capabilities second.
+
+## Read next
+
+1. [Prompt API](/docs/reference/prompt-api)
+2. [AI Authoring Rules](/docs/language/ai-authoring-rules)
+3. [Quickstart](/docs/getting-started/quickstart)

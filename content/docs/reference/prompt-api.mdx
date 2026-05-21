@@ -108,6 +108,18 @@ Provides:
 
 This matters because examples reduce ambiguity for model generation.
 
+## Prompt architecture at a glance
+
+Think about the final system prompt in 3 layers:
+
+| Layer | Owns what |
+|---|---|
+| `toon.prompt` | Canonical ToonUI language contract |
+| App-specific instructions | Your domain behavior and assistant framing |
+| Tool list / tool policy | What your host app can actually do |
+
+That separation matters because ToonUI should teach UI generation, not replace your app rules.
+
 ## Why prompt composition is split
 
 The helpers are separated so you can:
@@ -126,7 +138,13 @@ That is a better architecture than a single opaque string constant.
 import { createToonProtocol } from '@toon-ui/core';
 
 const toon = createToonProtocol();
-const system = [toon.prompt, appSpecificInstructions].join('\n\n');
+const system = [
+  toon.prompt,
+  'You are helping users compare products.',
+  'Use ToonUI when structured UI reduces friction.',
+  'Available tools:',
+  '- searchProducts(query)',
+].join('\n\n');
 ```
 
 ### Custom path
@@ -149,6 +167,16 @@ Customize later ONLY when you understand:
 - what generation behavior you expect to improve
 - what safety/consistency tradeoff you are accepting
 
+## Should you show the raw prompt?
+
+Yes, but in the RIGHT place.
+
+- show `toon.prompt` usage in Quickstart
+- explain prompt layers here in Prompt API
+- keep the full generated prompt as an advanced reference page
+
+For the advanced reference, see [Full Generated Prompt](/docs/reference/full-generated-prompt).
+
 ## Recommended authoring contract
 
 If you need one compact rule to copy into a system prompt, use this:
@@ -156,3 +184,4 @@ If you need one compact rule to copy into a system prompt, use this:
 > Output normal markdown plus valid `toon-ui` fenced blocks only. Use ONLY the official catalog and canonical syntax. Never invent components, props, or behavior. If unsure, simplify instead of improvising.
 
 For the full guide, see [AI Authoring Rules](/docs/language/ai-authoring-rules).
+For the advanced prompt reference, see [Full Generated Prompt](/docs/reference/full-generated-prompt).

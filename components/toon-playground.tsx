@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import CodeMirror from "@uiw/react-codemirror";
+import { EditorView } from "@codemirror/view";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -43,6 +45,54 @@ import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Item, ItemContent, ItemGroup, ItemTitle } from "@/components/ui/item";
 import { cn } from "@/lib/utils";
+
+const playgroundEditorTheme = EditorView.theme({
+  "&": {
+    height: "100%",
+    backgroundColor: "transparent",
+    color: "hsl(var(--foreground))",
+    fontSize: "0.875rem",
+    lineHeight: "1.5rem",
+  },
+  ".cm-scroller": {
+    minHeight: "420px",
+    fontFamily:
+      'ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+  },
+  ".cm-content": {
+    minHeight: "420px",
+    padding: "1rem 0",
+    caretColor: "hsl(var(--foreground))",
+  },
+  ".cm-line": {
+    padding: "0 1rem",
+  },
+  ".cm-gutters": {
+    minHeight: "420px",
+    backgroundColor: "transparent",
+    color: "hsl(var(--muted-foreground))",
+    borderRight: "1px solid hsl(var(--border))",
+  },
+  ".cm-gutter": {
+    backgroundColor: "transparent",
+  },
+  ".cm-activeLineGutter": {
+    backgroundColor: "transparent",
+    color: "hsl(var(--foreground))",
+  },
+  ".cm-activeLine": {
+    backgroundColor: "hsl(var(--muted) / 0.45)",
+  },
+  ".cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection": {
+    backgroundColor: "hsl(var(--primary) / 0.22) !important",
+  },
+  ".cm-cursor, .cm-dropCursor": {
+    borderLeftColor: "hsl(var(--foreground))",
+  },
+  "&.cm-focused": {
+    outline: "none",
+  },
+});
 
 const supportedComponents: Array<{
   name: string;
@@ -154,6 +204,7 @@ const supportedComponents: Array<{
 const authoringRules = [
   "Output only normal markdown plus optional toon-ui fenced blocks.",
   "Use only official ToonUI components from the catalog.",
+  "Use structural child nodes only inside their valid parents.",
   "Do not invent components, props, or raw HTML/JS/CSS.",
   "Keep actions explicit with reply=\"...\" or submit.",
   "If unsure, simplify to a smaller valid UI instead of improvising.",
@@ -188,6 +239,15 @@ const officialCatalog = [
   "menu",
   "command",
   "chart",
+] as const;
+
+const structuralChildNodes = [
+  "crumb",
+  "action",
+  "tab",
+  "section",
+  "series",
+  "point",
 ] as const;
 
 const examples = [
@@ -251,40 +311,42 @@ function renderToonUiCode(code: string) {
       return <div key={index}>&nbsp;</div>;
     }
 
-    const stringMatches = [...trimmed.matchAll(/"([^"]*)"/g)];
-    const beforeString = trimmed.slice(
-      0,
-      stringMatches[0]?.index ?? trimmed.length,
-    );
-    const lastString = stringMatches[stringMatches.length - 1];
-    const afterLastString = lastString
-      ? trimmed.slice((lastString.index ?? 0) + lastString[0].length)
-      : "";
-    const parts = beforeString.trim().split(/\s+/).filter(Boolean);
-    const keyword = parts[0] ?? "";
-    const variant = parts[1] ?? "";
-    const tail = afterLastString.trim();
+    const tokens = trimmed.match(/\s+|"(?:[^"\\]|\\.)*"|[^\s"]+/g) ?? [];
+    let nonWhitespaceIndex = 0;
 
     return (
       <div key={index}>
         <span className="text-muted-foreground/60">
           {indent.replace(/ /g, " ")}
         </span>
-        {keyword ? <span className="text-sky-700">{keyword}</span> : null}
-        {variant ? <span className="text-emerald-700"> {variant}</span> : null}
-        {stringMatches.map((match, matchIndex) => (
-          <span key={matchIndex} className="text-amber-700">
-            {matchIndex === 0 && (keyword || variant) ? " " : ""}
-            {match[0]}
-            {matchIndex < stringMatches.length - 1 ? " " : ""}
-          </span>
-        ))}
-        {tail ? (
-          <span className="text-violet-700">
-            {stringMatches.length || keyword || variant ? " " : ""}
-            {tail}
-          </span>
-        ) : null}
+        {tokens.map((token, tokenIndex) => {
+          if (/^\s+$/.test(token)) {
+            return <span key={tokenIndex}>{token.replace(/ /g, " ")}</span>;
+          }
+
+          const currentIndex = nonWhitespaceIndex;
+          nonWhitespaceIndex += 1;
+
+          let className = "text-violet-700";
+
+          if (token.startsWith('"')) {
+            className = "text-amber-700";
+          } else if (currentIndex === 0) {
+            className = "text-sky-700";
+          } else if (
+            currentIndex === 1 &&
+            /^[a-z]+$/i.test(token) &&
+            !token.includes("=")
+          ) {
+            className = "text-emerald-700";
+          }
+
+          return (
+            <span key={tokenIndex} className={className}>
+              {token}
+            </span>
+          );
+        })}
       </div>
     );
   });
@@ -530,7 +592,6 @@ const toon = createToonClient({
 export function ToonPlayground() {
   const [code, setCode] = useState(examples[0].value);
   const [copied, setCopied] = useState(false);
-  const [lastEvent, setLastEvent] = useState("No interaction yet.");
 
   const content = useMemo(() => `\`\`\`toon-ui\n${code}\n\`\`\``, [code]);
 
@@ -541,13 +602,7 @@ export function ToonPlayground() {
   }
 
   function handleEvent(payload: ToonReplyPayload | ToonSubmitPayload) {
-    const interaction = toon.messages.toUIMessage(payload);
-    const label =
-      payload.kind === "ui_reply"
-        ? `Reply: ${payload.node.label}`
-        : interaction.metadata.displayContent;
-
-    setLastEvent(label);
+    void payload;
   }
 
   return (
@@ -605,19 +660,19 @@ export function ToonPlayground() {
             </Button>
           </div>
           <div className="p-4">
-            <div className="relative min-h-[420px] overflow-hidden rounded-2xl border bg-transparent font-mono text-sm leading-6">
-              <pre
-                aria-hidden="true"
-                className="pointer-events-none min-h-[420px] overflow-x-auto p-4 text-foreground"
-              >
-                <code>{renderToonUiCode(code)}</code>
-              </pre>
-              <textarea
+            <div className="overflow-hidden rounded-2xl border bg-background">
+              <CodeMirror
                 aria-label="ToonUI code editor"
                 value={code}
-                onChange={(event) => setCode(event.target.value)}
-                spellCheck={false}
-                className="absolute inset-0 min-h-[420px] w-full resize-y bg-transparent p-4 font-mono text-sm leading-6 text-transparent caret-zinc-50 outline-none selection:bg-primary/30 focus-visible:ring-2 focus-visible:ring-ring"
+                height="420px"
+                basicSetup={{
+                  foldGutter: false,
+                  highlightActiveLine: true,
+                  highlightActiveLineGutter: true,
+                  autocompletion: false,
+                }}
+                extensions={[EditorView.lineWrapping, playgroundEditorTheme]}
+                onChange={(value) => setCode(value)}
               />
             </div>
           </div>
@@ -633,6 +688,7 @@ export function ToonPlayground() {
           <div className="min-h-[452px] p-4">
             <div className="space-y-4 rounded-2xl bg-background p-4">
               <ToonMessage
+                key={code}
                 content={content}
                 runtime={toon}
                 onReply={handleEvent}
@@ -681,11 +737,21 @@ export function ToonPlayground() {
 
           <div className="rounded-2xl border p-4">
             <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Official catalog
+              Official root components
             </p>
             <div className="flex flex-wrap gap-2">
               {officialCatalog.map((component) => (
                 <Badge key={component} variant="outline" className="font-mono text-xs">
+                  {component}
+                </Badge>
+              ))}
+            </div>
+            <p className="mt-4 mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Structural child nodes
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {structuralChildNodes.map((component) => (
+                <Badge key={component} variant="secondary" className="font-mono text-xs">
                   {component}
                 </Badge>
               ))}
@@ -762,45 +828,10 @@ ${component.code}
 
         <div className="mt-6 flex justify-start">
           <Button asChild>
-            <a href="/docs/language/syntax">View full syntax</a>
+            <a href="/docs/language/complete-syntax-reference">
+              View complete syntax reference
+            </a>
           </Button>
-        </div>
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-3xl border bg-card p-6">
-          <div className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
-            <Sparkles className="size-4" />
-            Examples
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Use the quick examples above to see how a small ToonUI response
-            becomes buttons, forms, alerts, and confirmations.
-          </p>
-        </div>
-
-        <div className="rounded-3xl border bg-card p-6">
-          <div className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
-            <CheckCircle2 className="size-4" />
-            How AI would use this
-          </div>
-          <ol className="space-y-3 text-sm text-muted-foreground">
-            <li>1. The user asks for help or starts a task in chat.</li>
-            <li>
-              2. The model returns ToonUI instead of raw text, ad-hoc JSON, or
-              generated React.
-            </li>
-            <li>
-              3. Your app renders that ToonUI as real UI and handles replies or
-              submits with typed events.
-            </li>
-          </ol>
-          <div className="mt-4 rounded-2xl border bg-muted/40 p-4 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">
-              Last interaction:
-            </span>{" "}
-            {lastEvent}
-          </div>
         </div>
       </section>
     </section>

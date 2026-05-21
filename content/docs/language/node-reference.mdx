@@ -129,6 +129,14 @@ This is BETTER than plain prose because it gives a semantic empty-state structur
 
 Use `tabs` when information belongs to parallel sections.
 
+```txt
+tabs "Customer profile":
+  tab "Summary":
+    text "Customer is active."
+  tab "History":
+    text "Last order was yesterday."
+```
+
 Typical use:
 
 - summary vs details
@@ -138,6 +146,14 @@ Typical use:
 ### `accordion`
 
 Use `accordion` when the content is dense and progressive disclosure helps.
+
+```txt
+accordion "Advanced settings":
+  section "Inventory":
+    text "Sync runs every 15 minutes."
+  section "Billing":
+    text "Invoices close on the last day of the month."
+```
 
 Typical use:
 
@@ -190,6 +206,7 @@ Important rules:
 
 - `select`, `radio`, and `multiselect` need `options`
 - `slider` needs `min` and `max`
+- default field values use `value="..."` in source syntax
 - `required` should be used only when truly necessary
 
 ### `button`
@@ -302,6 +319,8 @@ breadcrumb:
   crumb "Jefferson Lopez"
 ```
 
+`crumb` is a structural child node. Use it ONLY inside `breadcrumb`.
+
 ### `pagination`
 
 Use `pagination` when results span multiple pages.
@@ -314,15 +333,42 @@ pagination page=2 totalPages=7
 
 Use `menu` when the user needs a semantic list of actions.
 
+```txt
+menu "Quick actions":
+  action "Create sale" reply="start-sale"
+  action "View inventory" reply="show-inventory" variant="secondary"
+```
+
+`action` is a structural child node. Use it ONLY inside `menu` or `command`.
+Every `action` must include `reply="..."` or `submit`.
+`action` can also include an optional `variant="..."` attribute.
+
 ### `command`
 
 Use `command` when the interaction resembles a command palette or compact action launcher.
+
+```txt
+command "Jump to":
+  action "Open reports" reply="open-reports"
+  action "Create product" reply="start-create-product"
+```
 
 ## Analytics nodes
 
 ### `chart`
 
 Use `chart` for trends and comparisons, not raw precision first.
+
+```txt
+chart bar "Weekly sales" x="Day" y="Revenue":
+  series "Store A":
+    point "Mon" 1200
+    point "Tue" 980
+```
+
+`series` is a structural child node inside `chart`.
+`point` is a structural child node inside `series`.
+`chart` can also include optional `x="..."` and `y="..."` axis labels.
 
 Typical use:
 

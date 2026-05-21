@@ -1,0 +1,107 @@
+---
+title: "Custom Host Loop"
+description: "Use ToonUI without Vercel AI SDK by keeping your own chat state, model calls, and interaction reinjection."
+---
+
+Use this guide when:
+
+- you do NOT want Vercel AI SDK
+- you already own your own chat state
+- you want ToonUI as protocol + rendering + typed interactions
+
+## The key idea
+
+ToonUI does not require a specific AI SDK.
+
+You can keep your own loop:
+
+1. send messages to the model
+2. receive assistant content
+3. render ToonUI
+4. turn interactions back into the next model/user message
+
+## Minimal mental model
+
+| Layer | Owner |
+|---|---|
+| ToonUI language | `@toon-ui/core` |
+| ToonUI rendering | `@toon-ui/toon-ui` or `@toon-ui/react` |
+| Model transport | Your app |
+| Message state | Your app |
+
+## Example server prompt
+
+```ts
+import { createToonProtocol } from '@toon-ui/core';
+
+const toon = createToonProtocol();
+
+export const system = [
+  toon.prompt,
+  'You help users manage inventory.',
+  'Available tools:',
+  '- searchProducts(query)',
+].join('\n\n');
+```
+
+## Example client rendering
+
+```tsx
+import { ToonMessage, createToonClient } from '@toon-ui/toon-ui';
+
+const toon = createToonClient();
+```
+
+Render:
+
+```tsx
+<ToonMessage
+  content={assistantContent}
+  runtime={toon}
+  onReply={handleReply}
+  onSubmit={handleSubmit}
+/>
+```
+
+## Reinjection path 1 — back into model messages
+
+```ts
+function handleReply(payload: Parameters<typeof toon.messages.toModelMessage>[0]) {
+  const next = toon.messages.toModelMessage(payload);
+  sendToModel(next);
+}
+```
+
+Use this when the next step should go directly into your LLM loop.
+
+## Reinjection path 2 — back into UI/chat state
+
+```ts
+function handleSubmit(payload: Parameters<typeof toon.messages.toUIMessage>[0]) {
+  const next = toon.messages.toUIMessage(payload);
+  appendToChatState(next);
+}
+```
+
+Use this when your app stores UI-shaped messages first.
+
+## When to use each conversion
+
+| API | Use it when |
+|---|---|
+| `toon.messages.toModelMessage()` | Your loop stores model-facing messages |
+| `toon.messages.toUIMessage()` | Your app stores UI/chat messages |
+| `toon.messages.toContent()` | You only need the normalized content string |
+
+## Common mistakes
+
+- assuming you need `useChat`
+- using `createToonClient()` on the server
+- rendering raw protocol content directly to users
+- forgetting to route reply/submit back into your app loop
+
+## Read next
+
+1. [Build a Real ToonUI Flow](/docs/guides/build-a-real-flow)
+2. [Vercel AI SDK](/docs/guides/vercel-ai-sdk)
+3. [Events and Messages](/docs/reference/events-and-messages)

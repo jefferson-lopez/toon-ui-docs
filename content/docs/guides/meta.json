@@ -1,1 +1,1 @@
-{ "title": "Guides", "pages": ["vercel-ai-sdk", "custom-adapter"] }
+{ "title": "Build and Integrate", "pages": ["build-a-real-flow", "custom-host-loop", "custom-adapter", "ui-patterns", "debug-invalid-toonui", "vercel-ai-sdk"] }

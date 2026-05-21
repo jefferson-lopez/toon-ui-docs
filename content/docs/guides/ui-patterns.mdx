@@ -1,0 +1,100 @@
+---
+title: "UI Patterns"
+description: "Practical decision guide for choosing the right ToonUI node based on the user task."
+---
+
+Syntax alone is NOT enough.
+
+You also need to know which node to choose for the situation.
+
+## One-entity pattern
+
+Use `card` when:
+
+- one entity is the focus
+- the user may need one or two next actions
+
+```txt
+card "Customer found":
+  text "Jefferson Lopez Mendoza"
+  badge "Active" success
+  button secondary "View history" reply="view-history"
+```
+
+## Repeated-results pattern
+
+Use `list` when:
+
+- you have repeated entities
+- each result may need text, status, or actions
+
+Use `table` instead when exact columns matter.
+
+## Exact-comparison pattern
+
+Use `table` when:
+
+- precision matters
+- users need side-by-side values
+- cells are more important than narrative reading
+
+## Structured-capture pattern
+
+Use `form` when:
+
+- you need 2 or more structured inputs
+- you want fewer back-and-forth turns
+
+## Destructive-action pattern
+
+Use `confirm danger` when:
+
+- the action is destructive
+- the user must confirm intent explicitly
+
+## Empty-state pattern
+
+Use `empty` when:
+
+- there are zero results
+- the user still needs guidance on the next step
+
+## Analytics pattern
+
+Use `chart` when:
+
+- the user needs trend or comparison understanding
+
+Use `table` as support when exact values still matter.
+
+## Action-choice pattern
+
+Use `menu` or `command` when:
+
+- the user must choose among actions
+- a prose bullet list would be less clear
+
+## Anti-pattern
+
+Do NOT ask in prose when a ToonUI structure is already obvious.
+
+Bad:
+
+```md
+Do you want me to create a form for this?
+```
+
+Better:
+
+```txt
+form "Create product":
+  field name text "Name" required
+  field price number "Price" required
+  button primary "Create product" submit
+```
+
+## Read next
+
+1. [Node Reference](/docs/language/node-reference)
+2. [AI Authoring Rules](/docs/language/ai-authoring-rules)
+3. [Build a Real ToonUI Flow](/docs/guides/build-a-real-flow)

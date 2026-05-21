@@ -83,53 +83,79 @@ function renderToonUiCode(code: string) {
       return <div key={index}>&nbsp;</div>;
     }
 
-    const stringMatches = [...trimmed.matchAll(/"([^"]*)"/g)];
-    const beforeString = trimmed.slice(
-      0,
-      stringMatches[0]?.index ?? trimmed.length,
-    );
-    const lastString = stringMatches[stringMatches.length - 1];
-    const afterLastString = lastString
-      ? trimmed.slice((lastString.index ?? 0) + lastString[0].length)
-      : "";
-    const parts = beforeString.trim().split(/\s+/).filter(Boolean);
-    const keyword = parts[0] ?? "";
-    const variant = parts[1] ?? "";
-    const tail = afterLastString.trim();
+    const tokens = trimmed.match(/\s+|"(?:[^"\\]|\\.)*"|[^\s"]+/g) ?? [];
+    let nonWhitespaceIndex = 0;
 
     return (
       <div key={index}>
         <span className="text-muted-foreground/60">
           {indent.replace(/ /g, " ")}
         </span>
-        {keyword ? <span className="text-sky-700">{keyword}</span> : null}
-        {variant ? <span className="text-emerald-700"> {variant}</span> : null}
-        {stringMatches.map((match, matchIndex) => (
-          <span key={matchIndex} className="text-amber-700">
-            {matchIndex === 0 && (keyword || variant) ? " " : ""}
-            {match[0]}
-            {matchIndex < stringMatches.length - 1 ? " " : ""}
-          </span>
-        ))}
-        {tail ? (
-          <span className="text-violet-700">
-            {stringMatches.length || keyword || variant ? " " : ""}
-            {tail}
-          </span>
-        ) : null}
+        {tokens.map((token, tokenIndex) => {
+          if (/^\s+$/.test(token)) {
+            return <span key={tokenIndex}>{token.replace(/ /g, " ")}</span>;
+          }
+
+          const currentIndex = nonWhitespaceIndex;
+          nonWhitespaceIndex += 1;
+
+          let className = "text-violet-700";
+
+          if (token.startsWith('"')) {
+            className = "text-amber-700";
+          } else if (currentIndex === 0) {
+            className = "text-sky-700";
+          } else if (
+            currentIndex === 1 &&
+            /^[a-z]+$/i.test(token) &&
+            !token.includes("=")
+          ) {
+            className = "text-emerald-700";
+          }
+
+          return (
+            <span key={tokenIndex} className={className}>
+              {token}
+            </span>
+          );
+        })}
       </div>
     );
   });
 }
 
 const useCases = [
-  "Guide users with clear next steps",
-  "Collect structured data inside chat",
-  "Show confirmations before important actions",
-  "Turn model output into usable interface blocks",
-  "Render UI from model intent instead of fragile generated code",
-  "Make conversational flows feel like part of the product",
-];
+  {
+    title: "Guide users with clear next steps",
+    href: "/docs/guides/ui-patterns",
+    cta: "See UI patterns",
+  },
+  {
+    title: "Collect structured data inside chat",
+    href: "/docs/language/node-reference#form",
+    cta: "Learn forms",
+  },
+  {
+    title: "Show confirmations before important actions",
+    href: "/docs/language/node-reference#confirm",
+    cta: "Learn confirm",
+  },
+  {
+    title: "Turn model output into usable interface blocks",
+    href: "/docs/getting-started/quickstart",
+    cta: "Open quickstart",
+  },
+  {
+    title: "Render UI from model intent instead of fragile generated code",
+    href: "/docs/guides/build-a-real-flow",
+    cta: "Build a real flow",
+  },
+  {
+    title: "Make conversational flows feel like part of the product",
+    href: "/docs/reference/events-and-messages",
+    cta: "See events",
+  },
+] as const;
 
 export default function HomePage() {
   return (
@@ -310,6 +336,15 @@ export default function HomePage() {
         <p className="mt-4 text-xs leading-5 text-muted-foreground">
           Comparison based on the same sample UI expressed three ways: ToonUI, a JSON UI schema, and React component markup. Savings vary by renderer and prompt, but the pattern is consistent: ToonUI removes structural noise so the model can focus on the interaction itself.
         </p>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button asChild>
+            <Link href="/docs/concepts/mental-model">Learn the mental model</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/docs/reference/prompt-api">See prompt architecture</Link>
+          </Button>
+        </div>
       </section>
 
       <section className="rounded-3xl border bg-card p-6 md:p-8">
@@ -328,11 +363,27 @@ export default function HomePage() {
 
         <div className="mt-8 grid gap-4 md:grid-cols-2">
           {useCases.map((useCase) => (
-            <div key={useCase} className="flex gap-3 rounded-2xl border p-4">
-              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-              <p className="text-sm text-muted-foreground">{useCase}</p>
+            <div key={useCase.title} className="rounded-2xl border p-4">
+              <div className="flex gap-3">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <p className="text-sm text-muted-foreground">{useCase.title}</p>
+              </div>
+              <div className="mt-4">
+                <Button asChild size="sm" variant="outline">
+                  <Link href={useCase.href}>{useCase.cta}</Link>
+                </Button>
+              </div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button asChild>
+            <Link href="/docs/guides/build-a-real-flow">Build a real ToonUI flow</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/docs/guides/custom-adapter">Customize the UI</Link>
+          </Button>
         </div>
       </section>
     </main>

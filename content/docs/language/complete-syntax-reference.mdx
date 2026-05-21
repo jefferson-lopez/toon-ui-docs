@@ -1,0 +1,722 @@
+---
+title: "Complete Syntax Reference"
+description: "Detailed ToonUI syntax reference with one verified example for each node."
+---
+
+This page is the FULL syntax reference.
+
+It is verified against the current ToonUI source code:
+
+- catalog
+- parser
+- validator
+- exported node types
+
+Use it when you need:
+
+- the canonical syntax
+- one concrete example
+- the required structure
+- the valid parent/child relationship
+
+## Quick path
+
+1. Read the node syntax exactly as written.
+2. Copy the verified example.
+3. Check the structure notes before nesting nodes.
+
+## Core rules
+
+- ToonUI lives inside fenced `toon-ui` blocks
+- Containers usually end with `:`
+- Actions must be explicit with `reply="..."` or `submit`
+- Use only official nodes
+- Structural child nodes are valid only inside their correct parent
+
+## Root nodes
+
+### `text`
+
+**Syntax**
+
+```txt
+text "Visible text"
+```
+
+**Example**
+
+```txt
+text "Customer created successfully."
+```
+
+### `heading`
+
+**Syntax**
+
+```txt
+heading <1-6> "Visible text"
+```
+
+**Example**
+
+```txt
+heading 2 "Customer details"
+```
+
+### `separator`
+
+**Syntax**
+
+```txt
+separator
+separator horizontal
+separator vertical
+```
+
+**Example**
+
+```txt
+separator vertical
+```
+
+### `card`
+
+**Syntax**
+
+```txt
+card "Title":
+```
+
+**Example**
+
+```txt
+card "Customer found":
+  text "Jefferson Lopez Mendoza"
+  badge "Active" success
+  button secondary "View history" reply="view-history"
+```
+
+### `form`
+
+**Syntax**
+
+```txt
+form "Title":
+```
+
+**Required structure**
+
+- one or more `field`
+- one submit `button`
+
+**Example**
+
+```txt
+form "Create product":
+  field name text "Name" required
+  field price number "Price" required
+  button primary "Create product" submit
+```
+
+### `field`
+
+**Syntax**
+
+```txt
+field <name> <fieldType> "Label" [placeholder="..."] [helper="..."] [required] [options="A|B"] [min=<number>] [max=<number>] [step=<number>] [value="..."]
+```
+
+**Example**
+
+```txt
+field email email "Email" placeholder="name@company.com" required
+```
+
+**Field types**
+
+`text`, `email`, `number`, `password`, `date`, `time`, `textarea`, `select`, `checkbox`, `radio`, `switch`, `combobox`, `otp`, `slider`, `multiselect`
+
+**Extra rules**
+
+- `select`, `radio`, and `multiselect` require `options`
+- `slider` uses `min`, `max`, and optional `step`
+- `value` is parsed from a quoted attribute like `value="7"` or `value="true"`
+
+### `button`
+
+**Syntax**
+
+```txt
+button <variant> "Label" reply="Value"
+button <variant> "Label" submit
+```
+
+**Example**
+
+```txt
+button primary "Create product" reply="start-create-product"
+button primary "Save" submit
+```
+
+**Required rule**
+
+- must include variant, label, and `reply="..."` or `submit`
+
+### `confirm`
+
+**Syntax**
+
+```txt
+confirm <variant> "Title":
+```
+
+**Compatibility note**
+
+- the parser still accepts `confirm "Title":` and defaults it to `neutral`
+- the canonical syntax should still use an explicit variant
+
+**Example**
+
+```txt
+confirm danger "Delete customer?":
+  text "This action cannot be undone."
+  button secondary "Cancel" reply="cancel"
+  button danger "Delete" reply="delete-customer"
+```
+
+### `list`
+
+**Syntax**
+
+```txt
+list "Title":
+```
+
+**Required structure**
+
+- only `item` children
+
+**Example**
+
+```txt
+list "Products":
+  item "Toon Mug":
+    text "Ceramic mug"
+```
+
+### `item`
+
+**Syntax**
+
+```txt
+item "Title":
+```
+
+**Example**
+
+```txt
+item "Candy":
+  text "Ready to publish"
+```
+
+### `badge`
+
+**Syntax**
+
+```txt
+badge "Label" <variant>
+```
+
+**Example**
+
+```txt
+badge "Active" success
+```
+
+### `alert`
+
+**Syntax**
+
+```txt
+alert <variant> "Title":
+```
+
+**Example**
+
+```txt
+alert warning "Inventory mismatch":
+  text "The counted stock does not match the expected total."
+```
+
+### `table`
+
+**Syntax**
+
+```txt
+table "Title":
+```
+
+**Required structure**
+
+- `columns:`
+- one or more `row:`
+
+**Example**
+
+```txt
+table "Sales":
+  columns: "Date", "Sale number", "Total", "Status"
+  row: "May 14", "S-001", "$25.00", "Paid"
+  row: "May 15", "S-002", "$48.00", "Pending"
+```
+
+### `empty`
+
+**Syntax**
+
+```txt
+empty "Title":
+```
+
+**Example**
+
+```txt
+empty "No customers found":
+  text "Try another search term."
+  button secondary "Search again" reply="search-again"
+```
+
+### `tabs`
+
+**Syntax**
+
+```txt
+tabs "Title":
+```
+
+**Required structure**
+
+- one or more `tab`
+
+**Example**
+
+```txt
+tabs "Customer profile":
+  tab "Summary":
+    text "Customer is active."
+  tab "History":
+    text "Last order was yesterday."
+```
+
+### `accordion`
+
+**Syntax**
+
+```txt
+accordion "Title":
+```
+
+**Required structure**
+
+- one or more `section`
+
+**Example**
+
+```txt
+accordion "Advanced settings":
+  section "Inventory":
+    text "Sync runs every 15 minutes."
+  section "Billing":
+    text "Invoices close on the last day of the month."
+```
+
+### `dialog`
+
+**Syntax**
+
+```txt
+dialog "Title":
+```
+
+**Example**
+
+```txt
+dialog "Customer details":
+  text "This is modal content."
+```
+
+### `sheet`
+
+**Syntax**
+
+```txt
+sheet "Title" side="left|right|top|bottom":
+```
+
+**Example**
+
+```txt
+sheet "Filters" side="right":
+  text "Choose the filters to apply."
+```
+
+**Compatibility note**
+
+- if `side` is omitted, the parser defaults to `right`
+
+### `popover`
+
+**Syntax**
+
+```txt
+popover "Title":
+```
+
+**Example**
+
+```txt
+popover "More details":
+  text "Extra context for this result."
+```
+
+### `tooltip`
+
+**Syntax**
+
+```txt
+tooltip "Visible text"
+```
+
+**Example**
+
+```txt
+tooltip "More information"
+```
+
+### `progress`
+
+**Syntax**
+
+```txt
+progress "Label" value=<number> max=<number>
+```
+
+**Example**
+
+```txt
+progress "Uploading files" value=2 max=5
+```
+
+### `loading`
+
+**Syntax**
+
+```txt
+loading "Visible text"
+```
+
+**Example**
+
+```txt
+loading "Searching products..."
+```
+
+### `toast`
+
+**Syntax**
+
+```txt
+toast <variant> "Visible text"
+```
+
+**Example**
+
+```txt
+toast success "Customer created successfully."
+```
+
+### `breadcrumb`
+
+**Syntax**
+
+```txt
+breadcrumb:
+```
+
+**Required structure**
+
+- one or more `crumb`
+
+**Example**
+
+```txt
+breadcrumb:
+  crumb "Customers" reply="go:customers"
+  crumb "Jefferson Lopez"
+```
+
+### `pagination`
+
+**Syntax**
+
+```txt
+pagination page=<number> totalPages=<number>
+```
+
+**Example**
+
+```txt
+pagination page=2 totalPages=7
+```
+
+### `menu`
+
+**Syntax**
+
+```txt
+menu "Title":
+```
+
+**Required structure**
+
+- one or more `action`
+
+**Example**
+
+```txt
+menu "Quick actions":
+  action "Create sale" reply="start-sale"
+  action "View inventory" reply="show-inventory" variant="secondary"
+```
+
+### `command`
+
+**Syntax**
+
+```txt
+command "Title":
+```
+
+**Required structure**
+
+- one or more `action`
+
+**Example**
+
+```txt
+command "Jump to":
+  action "Open reports" reply="open-reports"
+  action "Create product" reply="start-create-product"
+```
+
+### `chart`
+
+**Syntax**
+
+```txt
+chart <type> "Title":
+```
+
+**Required structure**
+
+- one or more `series`
+- each `series` contains one or more `point`
+
+**Optional attributes**
+
+- `x="..."`
+- `y="..."`
+
+**Example**
+
+```txt
+chart bar "Weekly sales" x="Day" y="Revenue":
+  series "Store A":
+    point "Mon" 1200
+    point "Tue" 980
+```
+
+**Minimal example**
+
+```txt
+chart line "Weekly sales":
+  series "Store A":
+    point "Mon" 24
+    point "Tue" 31
+```
+
+## Structural child nodes
+
+These nodes are part of the language, but they do NOT live on their own.
+
+### `tab`
+
+**Only valid inside**
+
+- `tabs`
+
+**Syntax**
+
+```txt
+tab "Label":
+```
+
+### `section`
+
+**Only valid inside**
+
+- `accordion`
+
+**Syntax**
+
+```txt
+section "Title":
+```
+
+### `crumb`
+
+**Only valid inside**
+
+- `breadcrumb`
+
+**Syntax**
+
+```txt
+crumb "Label" [reply="Value"]
+```
+
+### `action`
+
+**Only valid inside**
+
+- `menu`
+- `command`
+
+**Syntax**
+
+```txt
+action "Label" reply="Value"
+action "Label" submit
+action "Label" reply="Value" variant="secondary"
+```
+
+### `series`
+
+**Only valid inside**
+
+- `chart`
+
+**Syntax**
+
+```txt
+series "Label":
+```
+
+### `point`
+
+**Only valid inside**
+
+- `series`
+
+**Syntax**
+
+```txt
+point "Label" <number>
+```
+
+## Common mistakes
+
+```txt
+button primary "Create product" "start-create-product"
+```
+
+Wrong because `button` needs `reply="..."` or `submit`.
+
+```txt
+action "Create sale" "start-sale"
+```
+
+Wrong because `action` needs `reply="..."` or `submit`.
+
+```txt
+form "Customer":
+  field name text "Name"
+```
+
+Wrong because `form` needs a submit button.
+
+## What NOT to do
+
+### 1. Do not invent nodes
+
+```txt
+header "Customer"
+modal "Delete product"
+grid:
+  text "Name"
+```
+
+Wrong because those are not official ToonUI nodes.
+
+### 2. Do not omit `reply=` or `submit`
+
+```txt
+button primary "Create product" "start-create-product"
+action "Open reports" "open-reports"
+```
+
+Wrong because actions must be explicit.
+
+### 3. Do not place structural child nodes at the top level
+
+```txt
+crumb "Customers"
+tab "Summary":
+  text "Active"
+series "Store A":
+  point "Mon" 1200
+```
+
+Wrong because:
+
+- `crumb` only works inside `breadcrumb`
+- `tab` only works inside `tabs`
+- `series` only works inside `chart`
+
+### 4. Do not use unquoted field default values
+
+```txt
+field active switch "Active" value=true
+field score slider "Score" min=0 max=10 step=1 value=7
+```
+
+Wrong because the parser reads field defaults from quoted `value="..."`.
+
+### 5. Do not emit incomplete strict nodes
+
+```txt
+alert "Low stock"
+progress 65
+pagination 2/8
+```
+
+Wrong because:
+
+- `alert` needs variant + title + `:` + children
+- `progress` needs label + `value=` + `max=`
+- `pagination` needs `page=` + `totalPages=`
+
+### 6. Do not leave table parsing ambiguous
+
+```txt
+row: May 09, $ 8,155.35, Completed
+```
+
+Risky because commas inside values can be misread. Quote every cell.
+
+## Read next
+
+1. [Syntax](/docs/language/syntax)
+2. [Node Reference](/docs/language/node-reference)
+3. [Catalog](/docs/language/catalog)
+4. [AI Authoring Rules](/docs/language/ai-authoring-rules)

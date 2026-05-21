@@ -1,0 +1,190 @@
+---
+title: "Build a Real ToonUI Flow"
+description: "End-to-end guide for teaching the model ToonUI, rendering it, reinjecting interactions, and keeping your app in control."
+---
+
+This is the missing practical walkthrough.
+
+Use it when you want to see ToonUI working as a REAL product flow, not as isolated snippets.
+
+## What you are building
+
+In this guide:
+
+1. the server teaches the model ToonUI
+2. the client renders mixed markdown + ToonUI
+3. button clicks and form submits become typed payloads
+4. your app decides what happens next
+
+## Step 1 — Create the protocol on the server
+
+```ts
+import { createToonProtocol } from '@toon-ui/core';
+
+const toon = createToonProtocol();
+
+export const system = [
+  toon.prompt,
+  'You help users manage products.',
+  'Use ToonUI when structured UI reduces friction.',
+  'Available tools:',
+  '- searchProducts(query)',
+  '- createProduct(input)',
+  '- deleteProduct(productId)',
+].join('\n\n');
+```
+
+### Why this matters
+
+- `toon.prompt` teaches the language
+- your instructions teach domain behavior
+- your tool list teaches host capabilities
+
+## Step 2 — Render assistant output on the client
+
+```tsx
+'use client';
+
+import { ToonMessage, createToonClient } from '@toon-ui/toon-ui';
+
+const toon = createToonClient();
+
+export function AssistantMessage({
+  content,
+  append,
+}: {
+  content: string;
+  append: (message: unknown) => void;
+}) {
+  return (
+    <ToonMessage
+      content={content}
+      runtime={toon}
+      onReply={(payload) => append(toon.messages.toUIMessage(payload))}
+      onSubmit={(payload) => append(toon.messages.toUIMessage(payload))}
+    />
+  );
+}
+```
+
+## Step 3 — Let the model return ToonUI
+
+Example assistant output:
+
+````md
+I found the product.
+
+```toon-ui
+card "Product found":
+  text "Candy · Price: $4.50 · Stock: 18"
+  button secondary "Edit" reply="edit-candy"
+  button danger "Delete" reply="delete-candy"
+```
+````
+
+## Step 4 — Reinject interactions into your app loop
+
+When the user clicks a button or submits a form, ToonUI emits a typed payload.
+
+Your app must decide what happens next.
+
+### UI-state reinjection
+
+```ts
+onReply={(payload) => {
+  const next = toon.messages.toUIMessage(payload);
+  append(next);
+}}
+```
+
+### Model-loop reinjection
+
+```ts
+onSubmit={(payload) => {
+  const next = toon.messages.toModelMessage(payload);
+  sendToModel(next);
+}}
+```
+
+## Step 5 — Handle the next step in your app
+
+Example mental model:
+
+- user clicks `Delete`
+- ToonUI emits `ui_reply`
+- your app interprets the intent
+- your app decides whether to:
+  - open a confirm flow
+  - call a tool
+  - reject the action
+  - ask for more input
+
+That decision belongs to YOUR app, not ToonUI.
+
+## Step 6 — Use forms for structured capture
+
+Example assistant output:
+
+````md
+```toon-ui
+form "Create product":
+  field name text "Name" placeholder="Ex: Premium chocolate" required
+  field price number "Price" placeholder="Ex: 12.99" required
+  field stock number "Stock" placeholder="Ex: 36" required
+  button primary "Create product" submit
+```
+````
+
+After submit:
+
+- ToonUI emits a `ui_submit` payload
+- your app reads normalized values
+- your app decides whether to call `createProduct(input)`
+
+## Step 7 — Validate before trusting in stricter environments
+
+```ts
+const blocks = toon.extractBlocks(content);
+
+for (const block of blocks) {
+  const ast = toon.parse(block.raw);
+  const result = toon.validate(ast);
+
+  if (!result.ok) {
+    throw new Error(result.errors.map((error) => error.message).join(', '));
+  }
+}
+```
+
+Use this in:
+
+- tests
+- fixtures
+- strict server pipelines
+- debugging sessions
+
+## The full boundary
+
+| Concern | Owner |
+|---|---|
+| UI language | ToonUI |
+| UI rendering runtime | ToonUI |
+| Typed interaction payloads | ToonUI |
+| Tool execution | Your app |
+| Auth | Your app |
+| Persistence | Your app |
+| Business workflow | Your app |
+
+## Common mistakes
+
+- assuming ToonUI executes tools
+- treating reply/submit as final behavior instead of input to your app loop
+- skipping payload reinjection
+- mixing business logic into `toon.prompt`
+
+## Read next
+
+1. [Quickstart](/docs/getting-started/quickstart)
+2. [Events and Messages](/docs/reference/events-and-messages)
+3. [Debug Invalid ToonUI](/docs/guides/debug-invalid-toonui)
+4. [Custom Host Loop](/docs/guides/custom-host-loop)

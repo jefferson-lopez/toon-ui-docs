@@ -63,6 +63,15 @@ Allowed today:
 - `command`
 - `chart`
 
+Structural child nodes are ALSO part of the canonical language, but only inside the correct parent:
+
+- `crumb` inside `breadcrumb`
+- `action` inside `menu` and `command`
+- `tab` inside `tabs`
+- `section` inside `accordion`
+- `series` inside `chart`
+- `point` inside `series`
+
 Never invent pseudo-components like:
 
 - `header`
@@ -85,7 +94,7 @@ separator horizontal
 separator vertical
 card "Title":
 form "Title":
-field <name> <fieldType> "Label" [placeholder="..."] [required]
+field <name> <fieldType> "Label" [placeholder="..."] [helper="..."] [required] [options="A|B"] [min=<number>] [max=<number>] [step=<number>] [value="..."]
 button <variant> "Label" reply="Value"
 button <variant> "Label" submit
 confirm <variant> "Title":
@@ -96,7 +105,9 @@ alert <variant> "Title":
 table "Title":
 empty "Title":
 tabs "Title":
+tab "Label":
 accordion "Title":
+section "Title":
 dialog "Title":
 sheet "Title" side="left|right|top|bottom":
 popover "Title":
@@ -105,10 +116,18 @@ progress "Label" value=<number> max=<number>
 loading "Visible text"
 toast <variant> "Visible text"
 breadcrumb:
+crumb "Label" [reply="Value"]
 pagination page=<number> totalPages=<number>
 menu "Title":
+action "Label" reply="Value"
+action "Label" submit
+action "Label" reply="Value" variant="secondary"
 command "Title":
-chart <type> "Title":
+action "Label" reply="Value"
+action "Label" submit
+chart <type> "Title" [x="..."] [y="..."]:
+series "Label":
+point "Label" <number>
 ```
 
 ## Required rules by component
@@ -145,6 +164,12 @@ These nodes always require a quoted title:
 | `progress` | Must include label, `value=<number>`, and `max=<number>` |
 | `pagination` | Must include `page=<number>` and `totalPages=<number>` |
 | `badge` | Never has children and never takes a `title` prop |
+| `breadcrumb` | Must include one or more `crumb` children |
+| `menu` / `command` | Must include one or more `action` children, and each `action` must use `reply="..."` or `submit` |
+| `tabs` | Must include one or more `tab` children |
+| `accordion` | Must include one or more `section` children |
+| `chart` | Must include one or more `series` children, and each `series` must include one or more `point` rows |
+| `field` | `select`, `radio`, and `multiselect` need `options`; `slider` needs `min` and `max`; default values use `value="..."` |
 
 ## Variants and families
 
@@ -252,6 +277,150 @@ Never ask “do you want me to build a UI?” when it is already obvious that UI
 - Use `empty` for empty states
 - Use `chart` only for trend/comparison analysis
 - If syntax confidence drops, fall back to simpler valid nodes
+
+## What NOT to do
+
+These anti-patterns are important because AI systems often copy visible patterns literally.
+
+### Do NOT invent components
+
+Wrong:
+
+```txt
+header "Customer"
+grid:
+  text "Name"
+```
+
+Why it is wrong:
+
+- `header` and `grid` are not official ToonUI nodes
+
+### Do NOT omit explicit actions
+
+Wrong:
+
+```txt
+button primary "Create product" "start-create-product"
+action "Open reports" "open-reports"
+```
+
+Correct:
+
+```txt
+button primary "Create product" reply="start-create-product"
+action "Open reports" reply="open-reports"
+```
+
+Why it is wrong:
+
+- `button` and `action` require `reply="..."` or `submit`
+
+### Do NOT use structural child nodes outside their parent
+
+Wrong:
+
+```txt
+tab "Summary":
+  text "Active"
+```
+
+Correct:
+
+```txt
+tabs "Customer profile":
+  tab "Summary":
+    text "Active"
+```
+
+Why it is wrong:
+
+- `tab`, `section`, `crumb`, `action`, `series`, and `point` are structural child nodes
+- they only work inside their valid parent
+
+### Do NOT create incomplete containers
+
+Wrong:
+
+```txt
+form "Create product":
+  field name text "Name"
+```
+
+Why it is wrong:
+
+- `form` needs at least one `field`
+- `form` also needs a submit `button`
+
+Wrong:
+
+```txt
+alert "Low stock"
+```
+
+Why it is wrong:
+
+- `alert` needs a variant, a quoted title, `:`, and nested children
+
+### Do NOT use unquoted field defaults
+
+Wrong:
+
+```txt
+field active switch "Active" value=true
+field score slider "Score" min=0 max=10 step=1 value=7
+```
+
+Correct:
+
+```txt
+field active switch "Active" value="true"
+field score slider "Score" min=0 max=10 step=1 value="7"
+```
+
+Why it is wrong:
+
+- the current parser reads field default values from quoted `value="..."`
+
+### Do NOT leave table cells ambiguous
+
+Risky:
+
+```txt
+row: May 09, $ 8,155.35, Completed
+```
+
+Correct:
+
+```txt
+row: "May 09", "$ 8,155.35", "Completed"
+```
+
+Why it is wrong:
+
+- commas inside values can break parsing intent
+- quote every table column and cell
+
+### Do NOT ask prose questions when UI is obvious
+
+Bad:
+
+```md
+Do you want me to build a form for this?
+```
+
+Better:
+
+```txt
+form "Create product":
+  field name text "Name" required
+  field price number "Price" required
+  button primary "Create product" submit
+```
+
+Why it is wrong:
+
+- when structured input is already needed, ToonUI should reduce back-and-forth
 
 ## Language rule
 

@@ -1,0 +1,123 @@
+---
+title: "Choose Your Integration Path"
+description: "Decide where ToonUI runs, which package path you need, and whether you want Vercel AI SDK or your own host loop."
+---
+
+This is the FIRST technical decision page.
+
+The goal is simple:
+
+- choose your UI runtime
+- choose your app framework
+- choose your AI loop
+
+Do NOT mix those decisions together.
+
+## The three independent decisions
+
+| Decision | Question | Typical options |
+|---|---|---|
+| UI runtime | Who renders ToonUI? | `@toon-ui/toon-ui`, `@toon-ui/react` |
+| App framework | Where does your app live? | Next.js, React app, custom React host |
+| AI loop | Who owns messages and model turns? | Vercel AI SDK, custom chat loop |
+
+ToonUI does NOT require Vercel AI SDK.
+
+Vercel AI SDK is only one possible host-loop integration.
+
+## Path 1 — Fastest path
+
+Choose this when:
+
+- you use React or Next.js
+- you want the default ToonUI adapter
+- you want the shortest path to a working result
+
+Use:
+
+- `@toon-ui/core`
+- `@toon-ui/toon-ui`
+
+AI loop:
+
+- Vercel AI SDK is optional
+- a custom chat loop also works
+
+Best next step:
+
+1. [Installation](/docs/getting-started/installation)
+2. [Quickstart](/docs/getting-started/quickstart)
+
+## Path 2 — React with explicit UI ownership
+
+Choose this when:
+
+- you already have a design system
+- you want control over rendering primitives
+- you want adapter coverage to be explicit
+
+Use:
+
+- `@toon-ui/core`
+- `@toon-ui/react`
+
+AI loop:
+
+- Vercel AI SDK is optional
+- your own host loop is equally valid
+
+Best next step:
+
+1. [Installation](/docs/getting-started/installation)
+2. [Configuration](/docs/getting-started/configuration)
+3. [Custom Adapter](/docs/guides/custom-adapter)
+
+## Path 3 — Custom host loop
+
+Choose this when:
+
+- you already own your own chat state
+- you do not want Vercel AI SDK
+- you want ToonUI only as protocol + rendering + typed interactions
+
+Use:
+
+- `@toon-ui/core`
+- `@toon-ui/toon-ui` or `@toon-ui/react`
+
+Your app owns:
+
+- message history
+- prompt composition
+- tool execution
+- model transport
+- what happens after reply or submit
+
+Best next step:
+
+1. [Quickstart](/docs/getting-started/quickstart)
+2. [Events and Messages](/docs/reference/events-and-messages)
+3. [Prompt API](/docs/reference/prompt-api)
+
+## When to use the Vercel AI SDK guide
+
+Use the [Vercel AI SDK guide](/docs/guides/vercel-ai-sdk) only when:
+
+- your app already uses Vercel AI SDK
+- or you want that specific message-loop style
+
+Do NOT read that guide as if it were a ToonUI requirement.
+
+It is an integration example, not the default truth of the project.
+
+## The recommendation
+
+If you are new:
+
+1. choose the **Fastest path**
+2. get ToonUI working
+3. only then decide whether you need Vercel AI SDK or deeper runtime control
+
+## Next step
+
+Go to [Installation](/docs/getting-started/installation).

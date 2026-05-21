@@ -1,6 +1,6 @@
 ---
 title: "Overview"
-description: "A product-style docs homepage for understanding what ToonUI is, why it exists, and how to start fast."
+description: "The best first page for understanding ToonUI, what it does, and the recommended path for learning it without getting lost."
 ---
 
 ## What ToonUI is
@@ -106,40 +106,50 @@ ToonUI is purpose-built for AI-native UI, so it is easier to teach, inspect, and
 | `@toon-ui/prompts` | Prompt helpers only | Custom prompt composition |
 | `@toon-ui/cli` | CLI validation and AST inspection | CI, debugging, and tooling |
 
-## Choose your path
+## Recommended learning path
 
-### I want to understand the product first
+If you are new, do NOT branch yet.
 
-Start here:
+Use this order:
 
-1. [Mental Model](/docs/concepts/mental-model)
-2. [Boundaries](/docs/architecture/boundaries)
-3. [Syntax](/docs/language/syntax)
+1. [Start Here](/docs/getting-started/start-here)
+2. [Choose Your Integration Path](/docs/getting-started/choose-your-integration-path)
+3. [Installation](/docs/getting-started/installation)
+4. [Quickstart](/docs/getting-started/quickstart)
+5. [Configuration](/docs/getting-started/configuration)
+6. [Mental Model](/docs/concepts/mental-model)
+7. [Syntax](/docs/language/syntax)
+8. [Node Reference](/docs/language/node-reference)
 
-### I want to ship something quickly
+This gives you a beginning, a middle, and an end.
 
-Start here:
+Read the deep reference pages only AFTER this path.
 
-1. [Installation](/docs/getting-started/installation)
-2. [Quickstart](/docs/getting-started/quickstart)
-3. [Configuration](/docs/getting-started/configuration)
+## What to read later
 
-### I want to decide package architecture
+Once the core path is clear, then go deeper:
 
-Start here:
+- [AI Authoring Rules](/docs/language/ai-authoring-rules)
+- [Complete Syntax Reference](/docs/language/complete-syntax-reference)
+- [Build a Real ToonUI Flow](/docs/guides/build-a-real-flow)
+- [Custom Host Loop](/docs/guides/custom-host-loop)
+- [UI Patterns](/docs/guides/ui-patterns)
+- [Debug Invalid ToonUI](/docs/guides/debug-invalid-toonui)
+- [@toon-ui/core](/docs/packages/core)
+- [@toon-ui/toon-ui](/docs/packages/toon-ui)
+- [Prompt API](/docs/reference/prompt-api)
+- [Full Generated Prompt](/docs/reference/full-generated-prompt)
 
-1. [Package Architecture](/docs/architecture/package-architecture)
-2. [@toon-ui/toon-ui](/docs/packages/toon-ui)
-3. [@toon-ui/react](/docs/packages/react)
-4. [Protocol and Types](/docs/reference/protocol-and-types)
-
-## Quick path
+## Fastest working path
 
 1. Create a protocol on the server with `createToonProtocol()`.
 2. Inject `toon.prompt` into your system prompt.
 3. Create a client runtime with `createToonClient()` or `createToonReactRuntime()`.
 4. Render assistant output with `ToonMessage` or `ToonRenderer`.
 5. Reinject interactions with `toon.messages.toUIMessage(payload)` or `toon.messages.toModelMessage(payload)`.
+
+This does NOT force you to use Vercel AI SDK.
+That is only one possible host-loop integration.
 
 ## What success looks like
 
@@ -153,4 +163,4 @@ After the quickstart, you should have:
 
 ## Next step
 
-Go to [Quickstart](/docs/getting-started/quickstart).
+Go to [Start Here](/docs/getting-started/start-here).

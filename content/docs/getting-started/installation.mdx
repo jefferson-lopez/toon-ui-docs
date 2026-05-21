@@ -5,6 +5,10 @@ description: "Choose the right ToonUI package path for your product, team, and i
 
 Install ToonUI based on the level of control you want.
 
+This page is about ToonUI packages.
+
+It is NOT the page where you choose your AI SDK.
+
 The important decision is NOT "what command do I run?"
 
 The real decision is:
@@ -23,7 +27,7 @@ The real decision is:
 ## Most teams should start here
 
 ```bash
-pnpm add @toon-ui/core @toon-ui/toon-ui react react-dom
+pnpm add @toon-ui/core @toon-ui/toon-ui
 ```
 
 Use this when you want:
@@ -32,10 +36,12 @@ Use this when you want:
 - the default adapter
 - the quickest path from model output to rendered UI
 
+This assumes your React app already has `react` and `react-dom` installed.
+
 ## Use `@toon-ui/react` when the frontend team wants control
 
 ```bash
-pnpm add @toon-ui/core @toon-ui/react react react-dom
+pnpm add @toon-ui/core @toon-ui/react
 ```
 
 Use this when you want:
@@ -91,7 +97,7 @@ The protocol starts on the server, because that is where you teach the model wha
 
 ```bash
 pnpm --filter @your-org/server add @toon-ui/core
-pnpm --filter @your-org/web add @toon-ui/toon-ui react react-dom
+pnpm --filter @your-org/web add @toon-ui/toon-ui
 pnpm --filter @your-org/web add -D @toon-ui/cli
 ```
 
@@ -100,5 +106,6 @@ pnpm --filter @your-org/web add -D @toon-ui/cli
 After installation:
 
 1. [Quickstart](/docs/getting-started/quickstart)
-2. [Mental Model](/docs/concepts/mental-model)
-3. [Boundaries](/docs/architecture/boundaries)
+2. [Configuration](/docs/getting-started/configuration)
+3. [Mental Model](/docs/concepts/mental-model)
+4. [Choose Your Integration Path](/docs/getting-started/choose-your-integration-path)
