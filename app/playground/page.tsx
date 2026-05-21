@@ -7,7 +7,10 @@ export default function PlaygroundPage() {
   return (
     <main className="min-h-screen bg-background">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-6 md:px-10">
-        <Link href="/" className="text-xl font-semibold tracking-tight text-foreground">
+        <Link
+          href="/"
+          className="text-xl font-semibold tracking-tight text-foreground"
+        >
           Toon<span className="text-primary">UI</span>
         </Link>
 
@@ -18,9 +21,7 @@ export default function PlaygroundPage() {
           <Button asChild variant="outline" size="sm">
             <Link href="/docs">Docs</Link>
           </Button>
-          <Button variant="outline" size="sm" disabled>
-            AI Chat · Soon
-          </Button>
+
           <ThemeToggle />
         </nav>
       </header>

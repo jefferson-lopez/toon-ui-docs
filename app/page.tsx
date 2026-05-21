@@ -39,7 +39,6 @@ const benefits = [
   },
 ];
 
-
 const toonUiExample = [
   'alert success "Product deleted":',
   '  text "Candy was deleted successfully."',
@@ -59,14 +58,16 @@ const comparisonRows = [
   },
   {
     format: "JSON UI",
-    thinking: "Think about structure, nesting, keys, arrays, and renderer conventions.",
+    thinking:
+      "Think about structure, nesting, keys, arrays, and renderer conventions.",
     words: 82,
     chars: 908,
     note: "About 63% more words and 70% more characters than ToonUI in this example.",
   },
   {
     format: "React UI",
-    thinking: "Think about components, props, handlers, layout, and implementation details.",
+    thinking:
+      "Think about components, props, handlers, layout, and implementation details.",
     words: 45,
     chars: 592,
     note: "About 33% more words and 54% more characters than ToonUI in this example.",
@@ -175,9 +176,6 @@ export default function HomePage() {
           <Button asChild variant="outline" size="sm">
             <Link href="/docs">Docs</Link>
           </Button>
-          <Button variant="outline" size="sm" disabled>
-            AI Chat · Soon
-          </Button>
           <ThemeToggle />
         </nav>
       </header>
@@ -191,7 +189,9 @@ export default function HomePage() {
           <div className="space-y-4">
             <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
               Give your AI a{" "}
-              <span className="text-primary">language for building interfaces</span>{" "}
+              <span className="text-primary">
+                language for building interfaces
+              </span>{" "}
               inside chat.
             </h1>
 
@@ -214,9 +214,7 @@ export default function HomePage() {
               </Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/playground">
-                Try playground
-              </Link>
+              <Link href="/playground">Try playground</Link>
             </Button>
             <Button asChild variant="outline">
               <Link href={repoUrl} target="_blank" rel="noreferrer">
@@ -232,10 +230,7 @@ export default function HomePage() {
       <section className="rounded-3xl border bg-card">
         <div className="grid gap-0 md:grid-cols-2 xl:grid-cols-4">
           {benefits.map(({ title, description, icon: Icon }, index) => (
-            <article
-              key={title}
-              className="p-5 md:p-6 xl:p-6"
-            >
+            <article key={title} className="p-5 md:p-6 xl:p-6">
               <div className="mb-4 inline-flex rounded-lg border p-2 text-primary">
                 <Icon className="size-4" />
               </div>
@@ -253,23 +248,30 @@ export default function HomePage() {
             The AI writes ToonUI. Your product renders the interface.
           </div>
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
-            Write interface intent once, then turn it into real UI inside your product.
+            Write interface intent once, then turn it into real UI inside your
+            product.
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground md:text-base">
-            Instead of inventing React or vague JSON, the model returns ToonUI. Your renderer transforms that response into real UI that matches your product and interaction rules.
+            Instead of inventing React or vague JSON, the model returns ToonUI.
+            Your renderer transforms that response into real UI that matches
+            your product and interaction rules.
           </p>
         </div>
 
         <div className="mt-8 grid gap-4 lg:grid-cols-2">
           <div className="overflow-hidden rounded-2xl border">
-            <div className="border-b px-4 py-3 text-sm font-medium">ToonUI code</div>
+            <div className="border-b px-4 py-3 text-sm font-medium">
+              ToonUI code
+            </div>
             <pre className="overflow-x-auto bg-transparent p-4 text-sm leading-6 text-foreground">
               <code>{renderToonUiCode(toonUiExample)}</code>
             </pre>
           </div>
 
           <div className="overflow-hidden rounded-2xl border">
-            <div className="border-b px-4 py-3 text-sm font-medium">Rendered UI</div>
+            <div className="border-b px-4 py-3 text-sm font-medium">
+              Rendered UI
+            </div>
             <div className="space-y-4 p-4">
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
                 <p className="text-sm font-medium">Product deleted</p>
@@ -306,14 +308,19 @@ export default function HomePage() {
             ToonUI gives the model less to write and less to think about.
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground md:text-base">
-            With ToonUI, the model focuses on interface intent. It does not need to spend as much output on JSON nesting, component trees, props, or implementation details. In the example above, ToonUI is materially shorter than the equivalent JSON UI and React UI representations.
+            With ToonUI, the model focuses on interface intent. It does not need
+            to spend as much output on JSON nesting, component trees, props, or
+            implementation details. In the example above, ToonUI is materially
+            shorter than the equivalent JSON UI and React UI representations.
           </p>
         </div>
 
         <div className="mt-8 overflow-hidden rounded-2xl border">
           <div className="grid border-b bg-muted/30 md:grid-cols-[1.1fr_1.8fr_0.7fr_0.7fr_1.4fr]">
             <div className="p-4 text-sm font-medium">Format</div>
-            <div className="p-4 text-sm font-medium">What the model has to think about</div>
+            <div className="p-4 text-sm font-medium">
+              What the model has to think about
+            </div>
             <div className="p-4 text-sm font-medium">Words</div>
             <div className="p-4 text-sm font-medium">Chars</div>
             <div className="p-4 text-sm font-medium">Takeaway</div>
@@ -325,24 +332,39 @@ export default function HomePage() {
               className="grid border-b last:border-b-0 md:grid-cols-[1.1fr_1.8fr_0.7fr_0.7fr_1.4fr]"
             >
               <div className="p-4 text-sm font-medium">{row.format}</div>
-              <div className="p-4 text-sm text-muted-foreground">{row.thinking}</div>
-              <div className="p-4 text-sm text-muted-foreground">{row.words}</div>
-              <div className="p-4 text-sm text-muted-foreground">{row.chars}</div>
-              <div className="p-4 text-sm text-muted-foreground">{row.note}</div>
+              <div className="p-4 text-sm text-muted-foreground">
+                {row.thinking}
+              </div>
+              <div className="p-4 text-sm text-muted-foreground">
+                {row.words}
+              </div>
+              <div className="p-4 text-sm text-muted-foreground">
+                {row.chars}
+              </div>
+              <div className="p-4 text-sm text-muted-foreground">
+                {row.note}
+              </div>
             </div>
           ))}
         </div>
 
         <p className="mt-4 text-xs leading-5 text-muted-foreground">
-          Comparison based on the same sample UI expressed three ways: ToonUI, a JSON UI schema, and React component markup. Savings vary by renderer and prompt, but the pattern is consistent: ToonUI removes structural noise so the model can focus on the interaction itself.
+          Comparison based on the same sample UI expressed three ways: ToonUI, a
+          JSON UI schema, and React component markup. Savings vary by renderer
+          and prompt, but the pattern is consistent: ToonUI removes structural
+          noise so the model can focus on the interaction itself.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3">
           <Button asChild>
-            <Link href="/docs/concepts/mental-model">Learn the mental model</Link>
+            <Link href="/docs/concepts/mental-model">
+              Learn the mental model
+            </Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/docs/reference/prompt-api">See prompt architecture</Link>
+            <Link href="/docs/reference/prompt-api">
+              See prompt architecture
+            </Link>
           </Button>
         </div>
       </section>
@@ -354,10 +376,13 @@ export default function HomePage() {
             What ToonUI helps AI do better
           </div>
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
-            Give AI a better way to guide users and collect information inside the conversation.
+            Give AI a better way to guide users and collect information inside
+            the conversation.
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground md:text-base">
-            ToonUI helps AI move beyond plain text by turning model intent into usable interface blocks your product can render, validate, and handle safely.
+            ToonUI helps AI move beyond plain text by turning model intent into
+            usable interface blocks your product can render, validate, and
+            handle safely.
           </p>
         </div>
 
@@ -379,7 +404,9 @@ export default function HomePage() {
 
         <div className="mt-6 flex flex-wrap gap-3">
           <Button asChild>
-            <Link href="/docs/guides/build-a-real-flow">Build a real ToonUI flow</Link>
+            <Link href="/docs/guides/build-a-real-flow">
+              Build a real ToonUI flow
+            </Link>
           </Button>
           <Button asChild variant="outline">
             <Link href="/docs/guides/custom-adapter">Customize the UI</Link>
