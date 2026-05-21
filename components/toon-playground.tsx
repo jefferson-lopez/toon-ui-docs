@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { oneDark } from "@codemirror/theme-one-dark";
 import CodeMirror from "@uiw/react-codemirror";
 import { EditorView } from "@codemirror/view";
 import {
@@ -45,12 +46,13 @@ import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Item, ItemContent, ItemGroup, ItemTitle } from "@/components/ui/item";
 import { cn } from "@/lib/utils";
+import { useTheme } from "next-themes";
 
 const playgroundEditorTheme = EditorView.theme({
   "&": {
     height: "100%",
-    backgroundColor: "transparent",
-    color: "hsl(var(--foreground))",
+    backgroundColor: "var(--background)",
+    color: "var(--foreground)",
     fontSize: "0.875rem",
     lineHeight: "1.5rem",
   },
@@ -62,7 +64,7 @@ const playgroundEditorTheme = EditorView.theme({
   ".cm-content": {
     minHeight: "420px",
     padding: "1rem 0",
-    caretColor: "hsl(var(--foreground))",
+    caretColor: "var(--foreground)",
   },
   ".cm-line": {
     padding: "0 1rem",
@@ -70,24 +72,26 @@ const playgroundEditorTheme = EditorView.theme({
   ".cm-gutters": {
     minHeight: "420px",
     backgroundColor: "transparent",
-    color: "hsl(var(--muted-foreground))",
-    borderRight: "1px solid hsl(var(--border))",
+    color: "var(--muted-foreground)",
+    borderRight: "1px solid var(--border)",
   },
   ".cm-gutter": {
     backgroundColor: "transparent",
   },
   ".cm-activeLineGutter": {
     backgroundColor: "transparent",
-    color: "hsl(var(--foreground))",
+    color: "var(--foreground)",
   },
   ".cm-activeLine": {
-    backgroundColor: "hsl(var(--muted) / 0.45)",
+    backgroundColor: "color-mix(in oklab, var(--muted) 45%, transparent)",
   },
-  ".cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection": {
-    backgroundColor: "hsl(var(--primary) / 0.22) !important",
-  },
+  ".cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection":
+    {
+      backgroundColor:
+        "color-mix(in oklab, var(--primary) 22%, transparent) !important",
+    },
   ".cm-cursor, .cm-dropCursor": {
-    borderLeftColor: "hsl(var(--foreground))",
+    borderLeftColor: "var(--foreground)",
   },
   "&.cm-focused": {
     outline: "none",
@@ -174,10 +178,7 @@ const supportedComponents: Array<{
   {
     name: "badge",
     description: "Show compact status labels.",
-    code: [
-      'card "Status":',
-      '  badge "Active" success',
-    ].join("\n"),
+    code: ['card "Status":', '  badge "Active" success'].join("\n"),
   },
   {
     name: "table",
@@ -206,7 +207,7 @@ const authoringRules = [
   "Use only official ToonUI components from the catalog.",
   "Use structural child nodes only inside their valid parents.",
   "Do not invent components, props, or raw HTML/JS/CSS.",
-  "Keep actions explicit with reply=\"...\" or submit.",
+  'Keep actions explicit with reply="..." or submit.',
   "If unsure, simplify to a smaller valid UI instead of improvising.",
 ] as const;
 
@@ -590,10 +591,25 @@ const toon = createToonClient({
 });
 
 export function ToonPlayground() {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [code, setCode] = useState(examples[0].value);
   const [copied, setCopied] = useState(false);
+  const isDark = mounted && resolvedTheme === "dark";
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const content = useMemo(() => `\`\`\`toon-ui\n${code}\n\`\`\``, [code]);
+  const editorExtensions = useMemo(
+    () => [
+      EditorView.lineWrapping,
+      ...(isDark ? [oneDark] : []),
+      playgroundEditorTheme,
+    ],
+    [isDark],
+  );
 
   async function handleCopy() {
     await navigator.clipboard.writeText(code);
@@ -665,13 +681,17 @@ export function ToonPlayground() {
                 aria-label="ToonUI code editor"
                 value={code}
                 height="420px"
+                className="bg-background"
+                theme={isDark ? "dark" : "light"}
                 basicSetup={{
                   foldGutter: false,
                   highlightActiveLine: true,
                   highlightActiveLineGutter: true,
                   autocompletion: false,
+                  tabSize: 4,
+                  allowMultipleSelections: true,
                 }}
-                extensions={[EditorView.lineWrapping, playgroundEditorTheme]}
+                extensions={editorExtensions}
                 onChange={(value) => setCode(value)}
               />
             </div>
@@ -704,7 +724,10 @@ export function ToonPlayground() {
         </div>
       </div>
 
-      <section id="authoring-rules" className="rounded-3xl border bg-card p-6 md:p-8">
+      <section
+        id="authoring-rules"
+        className="rounded-3xl border bg-card p-6 md:p-8"
+      >
         <div className="max-w-3xl">
           <div className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
             <Sparkles className="size-4" />
@@ -741,7 +764,11 @@ export function ToonPlayground() {
             </p>
             <div className="flex flex-wrap gap-2">
               {officialCatalog.map((component) => (
-                <Badge key={component} variant="outline" className="font-mono text-xs">
+                <Badge
+                  key={component}
+                  variant="outline"
+                  className="font-mono text-xs"
+                >
                   {component}
                 </Badge>
               ))}
@@ -751,7 +778,11 @@ export function ToonPlayground() {
             </p>
             <div className="flex flex-wrap gap-2">
               {structuralChildNodes.map((component) => (
-                <Badge key={component} variant="secondary" className="font-mono text-xs">
+                <Badge
+                  key={component}
+                  variant="secondary"
+                  className="font-mono text-xs"
+                >
                   {component}
                 </Badge>
               ))}
