@@ -210,8 +210,7 @@ function DemoToonForm({
         <CardHeader className="pb-3">
           <CardTitle>{node.title}</CardTitle>
           <FieldDescription>
-            El formulario vive dentro de ToonUI y el host recibe un submit
-            tipado.
+            The form lives inside ToonUI and the host receives a typed submit.
           </FieldDescription>
         </CardHeader>
         <CardContent className="grid gap-4">{children}</CardContent>

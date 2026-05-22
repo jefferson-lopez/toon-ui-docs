@@ -1,7 +1,23 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ToonPlayground } from "@/components/toon-playground";
+import { buildPageMetadata } from "@/lib/metadata";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Try ToonUI Live in the Playground",
+  description:
+    "Write ToonUI, preview the rendered interface instantly, and learn how AI-generated UI behaves before you ship it.",
+  path: "/playground",
+  keywords: [
+    "ToonUI playground",
+    "interactive docs",
+    "ToonUI syntax",
+    "AI playground",
+    "component catalog",
+  ],
+});
 
 export default function PlaygroundPage() {
   return (

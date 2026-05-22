@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -8,33 +9,34 @@ import {
   Wand2,
 } from "lucide-react";
 import { LandingDemo } from "@/components/landing-demo";
+import { buildPageMetadata } from "@/lib/metadata";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { repoUrl } from "@/lib/shared";
 
 const benefits = [
   {
-    title: "Better than raw text",
+    title: "Better than plain chat text",
     description:
-      "Let the model show actions, forms, and next steps instead of long instructions inside the conversation.",
+      "Let the model show actions, forms, and next steps inside the conversation instead of forcing users through long chat messages.",
     icon: Wand2,
   },
   {
-    title: "Better data collection",
+    title: "Collect input inside the chat",
     description:
-      "Ask for structured input in chat without sending users to a separate page or breaking the flow.",
+      "Ask for structured input without sending the user to a separate screen or breaking the assistant flow.",
     icon: ShieldCheck,
   },
   {
-    title: "Clearer user decisions",
+    title: "Guide end users clearly",
     description:
-      "Present choices, confirmations, and recommendations in a way that is easier to understand and act on.",
+      "Present choices, confirmations, and recommendations in a format the end user can understand and act on quickly.",
     icon: Sparkles,
   },
   {
-    title: "Real UI, predictable output",
+    title: "Structured UI, not frontend generation",
     description:
-      "The model writes ToonUI. Your product renders it with real components that match your interface and rules.",
+      "The model writes ToonUI for chat. Your product renders real components and keeps ownership of styling, logic, and rules.",
     icon: Code2,
   },
 ];
@@ -158,6 +160,21 @@ const useCases = [
   },
 ] as const;
 
+export const metadata: Metadata = buildPageMetadata({
+  title: "Build AI Interfaces Inside Chat",
+  description:
+    "Turn LLM responses into forms, buttons, confirmations, and structured UI for end-user chat experiences your product can render safely with ToonUI.",
+  path: "/",
+  keywords: [
+    "AI interfaces",
+    "AI-generated UI",
+    "AI-native UI",
+    "ToonUI docs",
+    "UI language",
+    "LLM UX",
+  ],
+});
+
 export default function HomePage() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-16 px-6 py-10 md:px-10">
@@ -183,26 +200,25 @@ export default function HomePage() {
       <section className="space-y-8">
         <div className="mx-auto flex max-w-4xl flex-col items-center space-y-6 text-center">
           <span className="inline-flex w-fit rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground">
-            UI language for AI interfaces
+            Structured UI for end-user chat inside apps
           </span>
 
           <div className="space-y-4">
             <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
               Give your AI a{" "}
-              <span className="text-primary">
-                language for building interfaces
-              </span>{" "}
-              inside chat.
+              <span className="text-primary">language for chat UI</span>{" "}
+              instead of frontend generation.
             </h1>
 
             <p className="mx-auto max-w-3xl text-base text-muted-foreground md:text-lg">
-              ToonUI lets an LLM respond with forms, buttons, choices,
-              confirmations, and structured UI blocks so users can understand
-              what to do next and provide data more easily.
+              ToonUI lets an LLM respond inside your product chat with forms,
+              buttons, choices, confirmations, and other structured UI blocks
+              that help end users understand what to do next.
             </p>
             <p className="mx-auto max-w-3xl text-sm text-muted-foreground md:text-base">
-              Your app renders the UI and keeps control of actions, APIs,
-              validation, permissions, and business rules.
+              Your app still owns rendering, actions, APIs, validation,
+              permissions, and business rules. The model describes interface
+              intent. Your product stays in control.
             </p>
           </div>
 
@@ -245,16 +261,16 @@ export default function HomePage() {
         <div className="max-w-3xl">
           <div className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
             <Code2 className="size-4" />
-            The AI writes ToonUI. Your product renders the interface.
+            The AI writes chat UI intent. Your product renders the interface.
           </div>
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
-            Write interface intent once, then turn it into real UI inside your
-            product.
+            Let the model describe UI for the chat, then render it safely in
+            your product.
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground md:text-base">
-            Instead of inventing React or vague JSON, the model returns ToonUI.
-            Your renderer transforms that response into real UI that matches
-            your product and interaction rules.
+            Instead of asking the model to generate frontend implementation,
+            it returns ToonUI. Your renderer transforms that response into real
+            UI that matches your product, design system, and interaction rules.
           </p>
         </div>
 
