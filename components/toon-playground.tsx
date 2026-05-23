@@ -163,10 +163,13 @@ import {
   InputGroupButton,
 } from "@/components/ui/input-group";
 import { Item, ItemContent, ItemGroup, ItemTitle } from "@/components/ui/item";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { playgroundToonComponentKeys } from "@/lib/toon-catalog";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { ThemeToggle } from "./theme-toggle";
 
 const supportedComponents: Array<{
   name: string;
@@ -473,17 +476,6 @@ type PlaygroundGenericToonProps<
     sendReply: (payload: ToonReplyPayload) => void;
   };
   disabled?: boolean;
-};
-
-type ToonPlaygroundProps = {
-  catalogOverviewPrompt: string;
-  catalogCoveragePrompt: string;
-  fullPrompt: string;
-  promptStats: {
-    characters: number;
-    lines: number;
-    words: number;
-  };
 };
 
 const PlaygroundCommandContext = createContext(false);
@@ -1796,16 +1788,11 @@ const toon = createToonReactRuntime({
   }),
 });
 
-export function ToonPlayground({
-  catalogOverviewPrompt,
-  catalogCoveragePrompt,
-  fullPrompt,
-  promptStats,
-}: ToonPlaygroundProps) {
+export function ToonPlayground() {
   const [tab, setTab] = useState<InspectorTab>("conversation");
   const [mobileTab, setMobileTab] = useState<PlaygroundTab>("chat");
   const [prompt, setPrompt] = useState("");
-  const conversationViewportRef = useRef<HTMLDivElement | null>(null);
+  const conversationScrollAreaRef = useRef<HTMLDivElement | null>(null);
   const promptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const { messages, sendMessage, setMessages, status, error } =
     useChat<PlaygroundUIMessage>({
@@ -1815,7 +1802,10 @@ export function ToonPlayground({
     });
   const isSending = status === "submitted" || status === "streaming";
   useEffect(() => {
-    const viewport = conversationViewportRef.current;
+    const viewport =
+      conversationScrollAreaRef.current?.querySelector<HTMLElement>(
+        '[data-slot="scroll-area-viewport"]',
+      );
     if (!viewport) return;
     viewport.scrollTop = viewport.scrollHeight;
   }, [messages, isSending]);
@@ -1842,15 +1832,18 @@ export function ToonPlayground({
       .join("\n\n---\n\n");
   }, [messages]);
 
-  const submitPlainPrompt = useCallback(async (nextPrompt: string) => {
-    const trimmed = nextPrompt.trim();
-    if (!trimmed || isSending) return;
+  const submitPlainPrompt = useCallback(
+    async (nextPrompt: string) => {
+      const trimmed = nextPrompt.trim();
+      if (!trimmed || isSending) return;
 
-    setPrompt("");
-    await sendMessage({
-      text: trimmed,
-    });
-  }, [isSending, sendMessage]);
+      setPrompt("");
+      await sendMessage({
+        text: trimmed,
+      });
+    },
+    [isSending, sendMessage],
+  );
 
   const applyPromptPreset = useCallback((value: string) => {
     setPrompt(value);
@@ -1860,163 +1853,125 @@ export function ToonPlayground({
     });
   }, []);
 
-  const handleStructuredEvent = useCallback(async (
-    payload: ToonReplyPayload | ToonSubmitPayload,
-  ) => {
-    if (isSending) return;
+  const handleStructuredEvent = useCallback(
+    async (payload: ToonReplyPayload | ToonSubmitPayload) => {
+      if (isSending) return;
 
-    const visibleMessage = toon.messages.toUIMessage(payload);
-    setMessages((current) => [...current, visibleMessage]);
-    await sendMessage();
-  }, [isSending, sendMessage, setMessages]);
+      const visibleMessage = toon.messages.toUIMessage(payload);
+      setMessages((current) => [...current, visibleMessage]);
+      await sendMessage();
+    },
+    [isSending, sendMessage, setMessages],
+  );
 
-  const renderToonMarkdown = useCallback((markdown: string) => (
-    <MessageResponse className="text-sm text-muted-foreground">
-      {markdown}
-    </MessageResponse>
-  ), []);
+  const renderToonMarkdown = useCallback(
+    (markdown: string) => (
+      <MessageResponse className="text-sm text-muted-foreground">
+        {markdown}
+      </MessageResponse>
+    ),
+    [],
+  );
 
-  const renderToonError = useCallback((toonError: { message: string; details: string[] }) => (
-    <Alert variant="destructive" className="rounded-2xl">
-      <AlertTitle>Unable to render ToonUI</AlertTitle>
-      <AlertDescription>
-        {toonError.message}
-        {toonError.details.length ? (
-          <ul className="mt-2 list-disc pl-5">
-            {toonError.details.map((detail) => (
-              <li key={detail}>{detail}</li>
-            ))}
-          </ul>
-        ) : null}
-      </AlertDescription>
-    </Alert>
-  ), []);
+  const renderToonError = useCallback(
+    (toonError: { message: string; details: string[] }) => (
+      <Alert variant="destructive" className="rounded-2xl">
+        <AlertTitle>Unable to render ToonUI</AlertTitle>
+        <AlertDescription>
+          {toonError.message}
+          {toonError.details.length ? (
+            <ul className="mt-2 list-disc pl-5">
+              {toonError.details.map((detail) => (
+                <li key={detail}>{detail}</li>
+              ))}
+            </ul>
+          ) : null}
+        </AlertDescription>
+      </Alert>
+    ),
+    [],
+  );
 
   const tabItems: Array<{
     id: PlaygroundTab;
     label: string;
   }> = [
     { id: "chat", label: "Chat" },
-    { id: "conversation", label: "AI conversation" },
-    { id: "catalog", label: "Prompt layers" },
+    { id: "conversation", label: "Raw Markdown" },
+    { id: "catalog", label: "Catalog" },
   ];
 
-  const inspectorPanel = (
-    <div className="grid min-h-0 flex-1 gap-6 overflow-y-auto p-5">
-      {tab === "conversation" ? (
+  const inspectorPanel =
+    tab === "conversation" ? (
+      <div className="h-full min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
         <CodePanel
           code={markdownTranscript || "No conversation yet."}
           language="md"
           live
+          showLanguage={false}
+          className="min-h-full border-0 bg-transparent p-0 shadow-none rounded-none"
+          contentClassName="!max-h-none overflow-visible [&>pre]:min-h-full [&>pre]:p-0"
         />
-      ) : null}
-
-      {tab === "catalog" ? (
-        <div className="grid gap-6">
-          <div className="rounded-2xl border bg-muted/30 p-4">
-            <p className="text-sm font-medium">
-              Active catalog prompt inspection
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              The playground exposes the active configured catalog, the
-              generated server prompt, and the exact ToonUI blocks returned by
-              the model.
-            </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border bg-background p-3">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Full prompt size
-                </p>
-                <p className="mt-1 text-lg font-semibold">
-                  {promptStats.characters.toLocaleString()} chars
-                </p>
-              </div>
-              <div className="rounded-xl border bg-background p-3">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Lines
-                </p>
-                <p className="mt-1 text-lg font-semibold">
-                  {promptStats.lines.toLocaleString()}
-                </p>
-              </div>
-              <div className="rounded-xl border bg-background p-3">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Words
-                </p>
-                <p className="mt-1 text-lg font-semibold">
-                  {promptStats.words.toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-3">
-            <div>
-              <p className="text-sm font-medium">
-                `createCatalogOverviewPrompt()`
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Generated from the official catalog groups so the model sees the
-                real component map before it starts improvising.
-              </p>
-            </div>
-            <CodePanel code={catalogOverviewPrompt} language="txt" />
-          </div>
-
-          <div className="grid gap-3">
-            <div>
-              <p className="text-sm font-medium">
-                `createCatalogCoveragePrompt()`
-              </p>
-              <p className="text-sm text-muted-foreground">
-                This is the completeness checklist that pushes the model to
-                cover the official catalog before claiming an answer is
-                exhaustive.
-              </p>
-            </div>
-            <CodePanel code={catalogCoveragePrompt} language="txt" />
-          </div>
-
-          <div className="grid gap-3">
-            <div>
-              <p className="text-sm font-medium">Canonical full prompt</p>
-              <p className="text-sm text-muted-foreground">
-                The live playground uses the prompt generated from the same
-                active catalog registered in the React runtime.
-              </p>
-            </div>
-            <CodePanel code={fullPrompt} language="txt" />
-          </div>
-
-          <div className="grid gap-4 xl:grid-cols-2">
-            {supportedComponents.map((component) => (
-              <div key={component.name} className="rounded-2xl border p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-mono text-sm font-medium">
-                      {component.name}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {component.description}
-                    </p>
+      </div>
+    ) : (
+      <ScrollArea className="h-full min-h-0 flex-1">
+        <div className="px-3 py-3">
+          <div className="grid gap-6">
+            <div className="grid min-w-0 gap-4 xl:grid-cols-2">
+              {supportedComponents.map((component) => (
+                <div
+                  key={component.name}
+                  className="min-w-0 rounded-2xl border p-4"
+                >
+                  <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-mono text-sm font-medium">
+                        {component.name}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {component.description}
+                      </p>
+                    </div>
                   </div>
+                  <CodePanel
+                    code={component.code}
+                    language="toon-ui"
+                    showLanguage={false}
+                    className="max-w-full border-0 rounded-none px-0 [&_code]:whitespace-pre-wrap [&_pre]:overflow-x-hidden [&_pre]:whitespace-pre-wrap [&_pre]:break-words"
+                  />
                 </div>
-                <CodePanel code={component.code} language="toon-ui" />
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
-      ) : null}
-
-    </div>
-  );
+      </ScrollArea>
+    );
 
   return (
-    <section className="flex h-full min-h-0 flex-1 w-full flex-col overflow-hidden bg-background">
-      <div className="grid h-full min-h-0 flex-1 gap-0 overflow-hidden lg:grid-cols-[0.92fr_1.08fr]">
-        <section className="flex min-h-0 flex-col overflow-hidden border-b lg:border-r lg:border-b-0">
-          <div className="lg:border-b py-4">
-            <div className="flex px-4 max-lg:hidden items-center gap-2 text-sm font-medium">
+    <section className="flex h-dvh min-h-0 w-full flex-col overflow-hidden bg-background">
+      <header className="shrink-0 flex items-center justify-between gap-4 border-b px-4 py-4">
+        <Link
+          href="/"
+          className="text-xl font-semibold tracking-tight text-foreground"
+        >
+          Toon<span className="text-primary">UI</span>
+        </Link>
+
+        <nav className="flex flex-wrap items-center justify-end gap-4 text-sm text-muted-foreground">
+          <Link href="/docs" className="transition hover:text-foreground">
+            Docs
+          </Link>
+          <Link href="/playground" className="transition hover:text-foreground">
+            Playground
+          </Link>
+          <ThemeToggle />
+        </nav>
+      </header>
+
+      <div className="grid min-h-0 flex-1 gap-0 overflow-hidden lg:grid-cols-[0.92fr_1.08fr]">
+        <section className="relative flex h-full min-h-0 flex-col border-b lg:border-r lg:border-b-0">
+          <div className="z-10 shrink-0 bg-background">
+            <div className="hidden h-14 items-center border-b px-4 text-sm font-medium lg:flex">
               Chat
             </div>
             <Tabs
@@ -2030,129 +1985,130 @@ export function ToonPlayground({
               }}
               className="lg:hidden"
             >
-              <TabsList
-                variant="line"
-                className="flex w-full px-3 flex-wrap gap-x-4 gap-y-2"
-              >
-                {tabItems.map((item) => (
-                  <TabsTrigger
-                    key={item.id}
-                    className="pb-5"
-                    value={item.id}
-                    variant="line"
-                  >
-                    {item.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+              <ScrollArea className="h-12 w-full whitespace-nowrap">
+                <TabsList variant="line" className="h-12 w-max min-w-full px-3">
+                  {tabItems.map((item) => (
+                    <TabsTrigger
+                      key={item.id}
+                      className="h-full shrink-0"
+                      value={item.id}
+                      variant="line"
+                    >
+                      {item.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
             </Tabs>
           </div>
 
-          <div
-            ref={conversationViewportRef}
+          <ScrollArea
+            ref={conversationScrollAreaRef}
             className={cn(
-              "flex h-112 min-h-0 flex-col gap-4 overflow-y-auto px-5 py-5 lg:h-auto lg:flex-1",
-              mobileTab !== "chat" && "hidden lg:flex",
+              "min-h-0 flex-1",
+              mobileTab !== "chat" && "hidden lg:block",
             )}
           >
-            {messages.length === 0 ? (
-              <div className="flex h-full items-center justify-center">
-                <div className="w-full max-w-lg flex flex-col items-center rounded-3xl p-8 text-center">
-                  <p className="text-sm leading-5 text-muted-foreground">
-                    Ask for a real workflow inside the chat, then inspect the
-                    model transcript, the generated ToonUI, and the new
-                    catalog-driven prompt layers behind it.
-                  </p>
-                  <div className="mt-6 flex gap-3">
-                    {promptPresets.map((preset) => (
-                      <Button
-                        key={preset.label}
-                        type="button"
-                        variant="ghost"
-                        size={"lg"}
-                        disabled={isSending}
-                        onClick={() => applyPromptPreset(preset.prompt)}
-                      >
-                        {preset.label}
-                      </Button>
-                    ))}
+            <div className="flex min-h-full flex-col gap-4 px-5 pt-5 pb-28">
+              {messages.length === 0 ? (
+                <div className="flex h-full items-center justify-center">
+                  <div className="flex w-full max-w-lg flex-col items-center rounded-3xl p-8 text-center">
+                    <p className="text-sm leading-5 text-muted-foreground">
+                      Ask for a real workflow inside the chat, then inspect the
+                      model transcript, the generated ToonUI, and the new
+                      catalog-driven prompt layers behind it.
+                    </p>
+                    <div className="mt-6 flex flex-wrap justify-center gap-3">
+                      {promptPresets.map((preset) => (
+                        <Button
+                          key={preset.label}
+                          type="button"
+                          variant="ghost"
+                          size={"lg"}
+                          disabled={isSending}
+                          onClick={() => applyPromptPreset(preset.prompt)}
+                        >
+                          {preset.label}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : null}
+              ) : null}
 
-            {messages.map((message) => {
-              const textContent = message.parts
-                .filter((part) => part.type === "text")
-                .map((part) => part.text)
-                .join("\n");
+              {messages.map((message) => {
+                const textContent = message.parts
+                  .filter((part) => part.type === "text")
+                  .map((part) => part.text)
+                  .join("\n");
 
-              if (message.role === "assistant") {
+                if (message.role === "assistant") {
+                  return (
+                    <div key={message.id} className="grid gap-2">
+                      <div>
+                        <ToonMessage
+                          content={textContent}
+                          runtime={toon}
+                          onReply={handleStructuredEvent}
+                          onSubmit={handleStructuredEvent}
+                          renderMarkdown={renderToonMarkdown}
+                          renderError={renderToonError}
+                        />
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
-                  <div key={message.id} className="grid gap-2">
-                    <div>
-                      <ToonMessage
-                        content={textContent}
-                        runtime={toon}
-                        onReply={handleStructuredEvent}
-                        onSubmit={handleStructuredEvent}
-                        renderMarkdown={renderToonMarkdown}
-                        renderError={renderToonError}
-                      />
+                  <div
+                    key={message.id}
+                    className="ml-auto grid max-w-[90%] gap-2"
+                  >
+                    <div className="rounded-2xl bg-primary px-4 py-3 text-sm text-primary-foreground">
+                      <p className="whitespace-pre-wrap leading-6">
+                        {message.metadata?.displayContent ?? textContent}
+                      </p>
                     </div>
                   </div>
                 );
-              }
+              })}
 
-              return (
-                <div
-                  key={message.id}
-                  className="ml-auto grid max-w-[90%] gap-2"
-                >
-                  <div className="rounded-2xl bg-primary px-4 py-3 text-sm text-primary-foreground">
-                    <p className="whitespace-pre-wrap leading-6">
-                      {message.metadata?.displayContent ?? textContent}
-                    </p>
-                  </div>
+              {isSending ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <LoaderCircle className="size-4 animate-spin" />
+                  The model is responding…
                 </div>
-              );
-            })}
-
-            {isSending ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <LoaderCircle className="size-4 animate-spin" />
-                The model is responding…
-              </div>
-            ) : null}
-          </div>
+              ) : null}
+            </div>
+          </ScrollArea>
 
           <div
             className={cn(
-              "px-5 pb-5 xl:mt-auto",
-              mobileTab !== "chat" && "hidden xl:block",
+              "pointer-events-none px-5 z-20 pb-[calc(1rem+env(safe-area-inset-bottom))]",
+              mobileTab !== "chat" && "hidden lg:block",
             )}
           >
             <form
-              className="grid gap-3"
+              className="pointer-events-auto grid gap-3"
               onSubmit={(event) => {
                 event.preventDefault();
                 void submitPlainPrompt(prompt);
               }}
             >
-              <InputGroup className="h-auto rounded-md bg-background!">
+              <InputGroup className="min-h-10 z-10 rounded-md">
                 <TextareaAutosize
                   ref={promptTextareaRef}
                   data-slot="input-group-control"
                   value={prompt}
                   onChange={(event) => setPrompt(event.target.value)}
-                  minRows={3}
-                  maxRows={8}
-                  placeholder="Example: I need a subscription recommendation for a small team and I want to stay inside the chat."
-                  className="flex field-sizing-content min-h-10 w-full resize-none rounded-md bg-background px-3 py-2.5 text-base leading-6 transition-[color,box-shadow] outline-none placeholder:text-muted-foreground md:text-sm"
+                  minRows={2}
+                  maxRows={3}
+                  placeholder="Ask a question"
+                  className="flex field-sizing-content min-h-10 h-10 w-full resize-none rounded-md px-3 py-2.5 text-base leading-6 transition-[color,box-shadow] outline-none placeholder:text-muted-foreground md:text-sm"
                 />
-                <InputGroupAddon align="block-end">
+                <InputGroupAddon align="inline-end">
                   <InputGroupButton
-                    className="ml-auto"
                     size="sm"
                     variant="default"
                     type="submit"
@@ -2174,7 +2130,7 @@ export function ToonPlayground({
 
           <div
             className={cn(
-              "min-h-0 flex-1 xl:hidden",
+              "flex min-h-0 flex-1 flex-col lg:hidden",
               mobileTab === "chat" && "hidden",
             )}
           >
@@ -2183,7 +2139,7 @@ export function ToonPlayground({
         </section>
 
         <section className="hidden min-h-0 flex-col overflow-hidden lg:flex">
-          <div className="py-[7px]">
+          <div className="z-10 h-14 shrink-0 bg-background">
             <Tabs
               value={tab}
               onValueChange={(value: string) => {
@@ -2191,24 +2147,25 @@ export function ToonPlayground({
                 setTab(next);
                 setMobileTab(next);
               }}
+              className="h-full"
             >
-              <TabsList
-                variant="line"
-                className="flex w-full flex-wrap gap-x-4 px-3 gap-y-2"
-              >
-                {tabItems
-                  .filter((item) => item.id !== "chat")
-                  .map((item) => (
-                    <TabsTrigger
-                      key={item.id}
-                      value={item.id}
-                      className="pb-4"
-                      variant="line"
-                    >
-                      {item.label}
-                    </TabsTrigger>
-                  ))}
-              </TabsList>
+              <ScrollArea className="h-14 w-full whitespace-nowrap">
+                <TabsList variant="line" className="h-14 w-max min-w-full px-3">
+                  {tabItems
+                    .filter((item) => item.id !== "chat")
+                    .map((item) => (
+                      <TabsTrigger
+                        key={item.id}
+                        value={item.id}
+                        className="h-full shrink-0"
+                        variant="line"
+                      >
+                        {item.label}
+                      </TabsTrigger>
+                    ))}
+                </TabsList>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
             </Tabs>
           </div>
 

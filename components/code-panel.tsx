@@ -51,7 +51,16 @@ const toonUiShikiLanguage = {
 
 const codePanelHighlighterPromise = createHighlighter({
   themes: ["github-light", "github-dark"],
-  langs: [toonUiShikiLanguage, "txt", "md", "ts", "tsx", "bash", "shell", "json"],
+  langs: [
+    toonUiShikiLanguage,
+    "txt",
+    "md",
+    "ts",
+    "tsx",
+    "bash",
+    "shell",
+    "json",
+  ],
 });
 
 function getCodePanelLanguage(language: string) {
@@ -62,18 +71,23 @@ function getCodePanelLanguage(language: string) {
 
 function extractShikiLineHtml(html: string) {
   return Array.from(
-    html.matchAll(/<span class="line">[\s\S]*?<\/span>(?=\n<span class="line">|<\/code>)/g),
+    html.matchAll(
+      /<span class="line">[\s\S]*?<\/span>(?=\n<span class="line">|<\/code>)/g,
+    ),
   ).map(([line]) => line);
 }
 
 function replaceShikiLineHtml(html: string, lines: string[]) {
   let index = 0;
 
-  return html.replace(/<span class="line">[\s\S]*?<\/span>(?=\n<span class="line">|<\/code>)/g, () => {
-    const nextLine = lines[index];
-    index += 1;
-    return nextLine;
-  });
+  return html.replace(
+    /<span class="line">[\s\S]*?<\/span>(?=\n<span class="line">|<\/code>)/g,
+    () => {
+      const nextLine = lines[index];
+      index += 1;
+      return nextLine;
+    },
+  );
 }
 
 async function highlightCodePanel(code: string, language: string) {
@@ -144,12 +158,14 @@ export function CodePanel({
   live = false,
   showLanguage = true,
   className,
+  contentClassName,
 }: {
   code: string;
   language?: string;
   live?: boolean;
   showLanguage?: boolean;
   className?: string;
+  contentClassName?: string;
 }) {
   const [html, setHtml] = useState<string>("");
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -178,7 +194,12 @@ export function CodePanel({
   }, [html, live]);
 
   return (
-    <div className={cn("overflow-hidden rounded-2xl border bg-background", className)}>
+    <div
+      className={cn(
+        "overflow-hidden rounded-2xl border bg-background",
+        className,
+      )}
+    >
       {showLanguage ? (
         <div className="border-b px-4 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {language}
@@ -190,6 +211,7 @@ export function CodePanel({
           "[&>pre]:m-0 [&>pre]:overflow-x-auto [&>pre]:!bg-transparent [&>pre]:p-4 [&>pre]:text-sm [&>pre]:leading-6",
           live &&
             "max-h-[calc(100vh-14rem)] overflow-y-auto [&>pre]:whitespace-pre-wrap",
+          contentClassName,
         )}
         dangerouslySetInnerHTML={{ __html: html }}
       />
