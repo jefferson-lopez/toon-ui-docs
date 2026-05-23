@@ -1,0 +1,302 @@
+---
+title: "Vercel AI SDK + AI Elements"
+description: "A complete ToonUI path using AI SDK for transport and AI Elements for the chat shell."
+---
+
+This guide shows the recommended full-stack path when you want ToonUI inside a polished React chat UI.
+
+Use:
+
+- AI SDK for model calls, streaming, and message transport
+- AI Elements for the chat shell, message layout, prompt input, and markdown response UI
+- ToonUI for semantic UI blocks inside assistant responses
+
+## Mental model
+
+| Layer | Responsibility |
+|---|---|
+| AI SDK | Sends messages to the server and streams model output back to React. |
+| AI Elements | Renders the chat shell: conversation, messages, markdown, and prompt input. |
+| ToonUI Core | Generates the system prompt from your active catalog and validates ToonUI blocks. |
+| ToonUI React | Renders configured ToonUI blocks and converts UI interactions back into chat messages. |
+| Your app | Owns auth, tools, mutations, persistence, and business behavior. |
+
+ToonUI does not replace AI Elements. AI Elements owns the chat UI. ToonUI owns the semantic UI protocol inside assistant messages.
+
+## Install
+
+Install the runtime packages:
+
+```bash
+pnpm add @toon-ui/core @toon-ui/react ai @ai-sdk/react @ai-sdk/openai
+```
+
+Add the AI Elements pieces used by this guide:
+
+```bash
+npx ai-elements@latest add message conversation prompt-input
+```
+
+If your AI Elements setup uses Streamdown styles, add the required source line to your global CSS:
+
+```css title="app/globals.css"
+@source "../node_modules/streamdown/dist/*.js";
+```
+
+## Shared catalog
+
+Define the official ToonUI components your app can actually render.
+
+```ts title="lib/toon-catalog.ts"
+export const toonComponentKeys = [
+  'text',
+  'card',
+  'form',
+  'field',
+  'button',
+  'table',
+] as const;
+```
+
+Do not add product-specific component names. Use official ToonUI keys only.
+
+## Server route
+
+Generate the ToonUI system prompt on the server from the same catalog.
+
+```ts title="app/api/chat/route.ts"
+import { openai } from '@ai-sdk/openai';
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
+import { createToonProtocol } from '@toon-ui/core';
+import { toonComponentKeys } from '@/lib/toon-catalog';
+
+const toon = createToonProtocol({
+  components: toonComponentKeys,
+});
+
+const system = [
+  toon.prompt,
+  'You are a product assistant.',
+  'Use ToonUI when a card, table, form, or button would make the answer easier to act on.',
+  'Do not invent ToonUI components outside the active catalog.',
+].join('\n\n');
+
+export async function POST(request: Request) {
+  const { messages } = (await request.json()) as { messages: UIMessage[] };
+
+  const result = streamText({
+    model: openai('gpt-4o-mini'),
+    system,
+    messages: await convertToModelMessages(messages),
+  });
+
+  return result.toUIMessageStreamResponse();
+}
+```
+
+## ToonUI runtime
+
+Register React components for every enabled ToonUI key.
+
+```tsx title="lib/toon-runtime.tsx"
+'use client';
+
+import { createToonReactRuntime } from '@toon-ui/react';
+import {
+  TextComponent,
+  CardComponent,
+  FormComponent,
+  FieldComponent,
+  ButtonComponent,
+  TableComponent,
+} from '@/components/toon-components';
+
+export const toon = createToonReactRuntime({
+  components: {
+    text: TextComponent,
+    card: CardComponent,
+    form: FormComponent,
+    field: FieldComponent,
+    button: ButtonComponent,
+    table: TableComponent,
+  },
+});
+```
+
+If a key is in the server catalog, it needs a matching React implementation. Otherwise the model can produce UI your app cannot render.
+
+The `@/components/toon-components` module is your design-system adapter. If you need to implement it from scratch, read [Configure the Catalog](/docs/guides/configure-catalog).
+
+## Chat page
+
+AI Elements renders the chat shell. ToonUI renders assistant text parts that may contain ToonUI fenced blocks.
+
+```tsx title="app/chat/page.tsx"
+'use client';
+
+import { DefaultChatTransport } from 'ai';
+import { useChat } from '@ai-sdk/react';
+import { ToonMessage } from '@toon-ui/react';
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from '@/components/ai-elements/conversation';
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from '@/components/ai-elements/message';
+import {
+  PromptInput,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+} from '@/components/ai-elements/prompt-input';
+import { toon } from '@/lib/toon-runtime';
+
+function getTextContent(message: { parts?: Array<{ type: string; text?: string }> }) {
+  return (message.parts ?? [])
+    .filter((part) => part.type === 'text')
+    .map((part) => part.text ?? '')
+    .join('\n\n');
+}
+
+export default function ChatPage() {
+  const { messages, sendMessage, setMessages, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
+
+  return (
+    <div className="flex h-screen flex-col">
+      <Conversation className="flex-1">
+        <ConversationContent>
+          {messages.map((message) => {
+            const content = getTextContent(message);
+
+            return (
+              <Message key={message.id} from={message.role}>
+                <MessageContent>
+                  {message.role === 'assistant' ? (
+                    <ToonMessage
+                      content={content}
+                      runtime={toon}
+                      renderMarkdown={(markdown) => (
+                        <MessageResponse>{markdown}</MessageResponse>
+                      )}
+                      renderError={(error) => (
+                        <MessageResponse>
+                          ToonUI could not render this response: {error.message}
+                        </MessageResponse>
+                      )}
+                      onReply={(payload) => {
+                        setMessages((current) => [
+                          ...current,
+                          toon.messages.toUIMessage(payload),
+                        ]);
+                      }}
+                      onSubmit={(payload) => {
+                        setMessages((current) => [
+                          ...current,
+                          toon.messages.toUIMessage(payload),
+                        ]);
+                      }}
+                    />
+                  ) : (
+                    <MessageResponse>{content}</MessageResponse>
+                  )}
+                </MessageContent>
+              </Message>
+            );
+          })}
+        </ConversationContent>
+        <ConversationScrollButton />
+      </Conversation>
+
+      <PromptInput
+        onSubmit={({ text }) => {
+          if (!text.trim()) return;
+          sendMessage({ text });
+        }}
+        className="border-t p-4"
+      >
+        <PromptInputBody>
+          <PromptInputTextarea placeholder="Ask something..." />
+        </PromptInputBody>
+        <PromptInputFooter>
+          <PromptInputSubmit status={status} />
+        </PromptInputFooter>
+      </PromptInput>
+    </div>
+  );
+}
+```
+
+## Why `renderMarkdown` matters
+
+`ToonMessage` separates normal markdown from ToonUI fenced blocks.
+
+````md
+Here is the summary.
+
+```toon-ui
+card "Customer found":
+  text "Jefferson Lopez"
+  button primary "Open profile" reply="open:customer-42"
+```
+````
+
+`renderMarkdown` lets AI Elements keep owning regular assistant prose:
+
+```tsx
+renderMarkdown={(markdown) => <MessageResponse>{markdown}</MessageResponse>}
+```
+
+That means:
+
+- markdown is rendered by AI Elements
+- ToonUI blocks are rendered by your configured ToonUI React components
+- parse or validation errors can be handled with `renderError`
+
+## Handling ToonUI interactions
+
+`onReply` and `onSubmit` should not mutate your database directly.
+
+They represent user intent. You can:
+
+- append them back into the AI SDK message list
+- call your own API route
+- trigger a tool flow
+- ask for confirmation
+- reject the action because of permissions
+
+The simplest chat loop appends the interaction as a UI message:
+
+```tsx
+onReply={(payload) => {
+  setMessages((current) => [...current, toon.messages.toUIMessage(payload)]);
+}}
+```
+
+For production, you usually add policy checks before executing any real action.
+
+## Common mistakes
+
+| Mistake | Why it is wrong |
+|---|---|
+| Using AI Elements instead of ToonUI | AI Elements renders the chat shell. It does not define the semantic UI language for the model. |
+| Using ToonUI instead of AI Elements | ToonUI renders semantic blocks. It is not a complete chat shell. |
+| Enabling catalog keys without React components | The model can emit UI the client cannot render. |
+| Putting business logic inside ToonUI components | ToonUI components should emit intent. Your app decides what happens next. |
+| Letting the model invent component names | ToonUI only accepts official parseable component keys. |
+
+## Next step
+
+Read:
+
+1. [Catalog](/docs/language/catalog)
+2. [Vercel AI SDK](/docs/guides/vercel-ai-sdk)
+3. [@toon-ui/react](/docs/packages/react)

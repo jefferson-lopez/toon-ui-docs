@@ -1,71 +1,196 @@
 ---
 title: "Events and Messages"
-description: "Reply and submit payloads, plus the message formats ToonUI generates for your host app."
+description: "Detailed reference for reply/submit payloads and how ToonUI converts interactions back into your host loop."
 ---
 
-The interaction APIs are the bridge between rendered UI and your application loop.
+Events and messages are the bridge between rendered ToonUI and your application loop.
 
-## Key APIs
+A rendered button or form does not execute business logic. It creates structured user intent. Your app decides what happens next.
 
-- `toon.events.reply()`
-- `toon.events.submit()`
-- `toon.messages.toContent()`
-- `toon.messages.toDisplayContent()`
-- `toon.messages.toModelMessage()`
-- `toon.messages.toUIMessage()`
+## API summary
 
-## Reply payload
+| API | Input | Output | Use when |
+|---|---|---|---|
+| `toon.events.reply(value, context?)` | reply string + optional context | `ReplyPayload` | creating a button-style interaction payload |
+| `toon.events.submit(intent, values?)` | submit intent + values | `SubmitPayload` | creating a form-style interaction payload |
+| `toon.messages.toContent(payload)` | reply or submit payload | compact string | sending protocol text to a model |
+| `toon.messages.toDisplayContent(payload)` | reply or submit payload | human-readable string | showing the interaction in chat history |
+| `toon.messages.toModelMessage(payload)` | reply or submit payload | model-facing object | reinjecting into a custom model loop |
+| `toon.messages.toUIMessage(payload)` | reply or submit payload | UI-message-shaped object | appending to AI SDK-style UI state |
 
-Reply events are button-style interactions.
+## Reply payloads
+
+Reply payloads represent button-like user intent.
 
 ```ts
-const payload = toon.events.reply('Open customer');
+const payload = toon.events.reply('Open product details', {
+  productId: 123,
+});
 ```
 
-The payload includes:
+Returns:
 
-- `kind: 'ui_reply'`
-- `eventId`
-- `source`
-- `component`
-- `value`
-- optional `context`
+```ts
+type ReplyPayload = {
+  kind: 'ui_reply';
+  eventId: string;
+  source: 'button';
+  component: 'button';
+  value: string;
+  line?: number;
+  context?: Record&lt;string, SubmitValue&gt;;
+};
+```
 
-## Submit payload
+| Field | Meaning |
+|---|---|
+| `kind` | Discriminator for reply interactions. |
+| `eventId` | Generated id for this interaction. |
+| `source` | Source primitive; currently `button`. |
+| `component` | Component that produced the reply; currently `button`. |
+| `value` | User intent value. |
+| `line` | Optional source line from generated ToonUI. |
+| `context` | Optional app metadata. |
 
-Submit events are form-style interactions.
+## Submit payloads
+
+Submit payloads represent form submissions.
 
 ```ts
 const payload = toon.events.submit('create_product', {
   name: 'Coca-Cola',
-  price: 25.5,
+  price: 2500,
 });
 ```
 
-The payload includes:
+Returns:
 
-- `kind: 'ui_submit'`
-- `eventId`
-- `source`
-- `intent`
-- `formTitle`
-- `values`
+```ts
+type SubmitPayload = {
+  kind: 'ui_submit';
+  eventId: string;
+  source: 'form';
+  intent: string;
+  formTitle: string;
+  values: Record&lt;string, SubmitValue&gt;;
+  line?: number;
+};
+```
 
-## Message conversion APIs
-
-| API | Result |
+| Field | Meaning |
 |---|---|
-| `toContent(payload)` | Compact normalized content string |
-| `toDisplayContent(payload)` | Human-readable display text |
-| `toModelMessage(payload)` | Structured model-facing message object |
-| `toUIMessage(payload)` | UI-friendly message object with `parts` and `metadata` |
+| `kind` | Discriminator for submit interactions. |
+| `eventId` | Generated id for this interaction. |
+| `source` | Source primitive; currently `form`. |
+| `intent` | App-facing submit intent. |
+| `formTitle` | Human-facing form title. |
+| `values` | Submitted values. |
+| `line` | Optional source line from generated ToonUI. |
 
-## Why this layer exists
+## `toContent`
 
-Without this layer, interaction reinjection becomes inconsistent across apps.
+Serializes payloads into compact protocol text.
 
-ToonUI gives you one normalized contract so:
+```ts
+const content = toon.messages.toContent(payload);
+```
 
-- buttons and forms behave predictably
-- the model loop receives stable content
-- your UI state can append interaction messages consistently
+Reply output shape:
+
+```txt
+ui_reply:
+  eventId: reply_abc123
+  value: Open product details
+  source: button
+  component: button
+```
+
+Submit output shape:
+
+```txt
+ui_submit:
+  eventId: submit_abc123
+  intent: create_product
+  formTitle: create_product
+  name: "Coca-Cola"
+  price: 2500
+```
+
+Use this when you need the raw text protocol.
+
+## `toDisplayContent`
+
+Creates human-readable content for UI history.
+
+```ts
+const display = toon.messages.toDisplayContent(payload);
+```
+
+For replies, this is the reply value.
+
+For submits, this is the form title plus submitted values. If the submit payload includes the original form node, field labels are used instead of raw field names.
+
+## `toModelMessage`
+
+Creates a model-facing message object.
+
+```ts
+const message = toon.messages.toModelMessage(payload);
+```
+
+Returns:
+
+```ts
+type ToonModelMessage<TPayload> = {
+  role: 'user';
+  kind: TPayload['kind'];
+  content: string;
+  displayContent: string;
+  payload: TPayload;
+};
+```
+
+Use it when the interaction should become the next user turn in your model loop.
+
+## `toUIMessage`
+
+Creates a UI-message-shaped object.
+
+```ts
+const message = toon.messages.toUIMessage(payload);
+```
+
+Returns:
+
+```ts
+type ToonUIMessage<TPayload> = {
+  id: string;
+  role: 'user';
+  parts: [{ type: 'text'; text: string }];
+  metadata: {
+    displayContent: string;
+    kind: TPayload['kind'];
+  };
+};
+```
+
+Use it when your chat store expects message objects with `parts` and `metadata`.
+
+## Recommended React usage
+
+```tsx
+<ToonMessage
+  content={content}
+  runtime={toon}
+  renderMarkdown={(markdown) => <MessageResponse>{markdown}</MessageResponse>}
+  renderError={(error) => <MyError details={error.details} />}
+  onReply={(payload) => append(toon.messages.toUIMessage(payload))}
+  onSubmit={(payload) => append(toon.messages.toUIMessage(payload))}
+/>
+```
+
+## Boundary reminder
+
+A reply or submit payload is intent, not execution.
+
+Do not let the prompt decide business behavior. Your app owns tools, permissions, persistence, and side effects.

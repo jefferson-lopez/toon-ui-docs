@@ -1,1 +1,1 @@
-{ "title": "API Reference", "pages": ["protocol-and-types", "events-and-messages", "react-runtime-and-hooks", "prompt-api", "full-generated-prompt", "errors-and-validation"] }
+{ "title": "API Reference", "pages": ["protocol-and-types", "prompt-api", "events-and-messages", "react-runtime-and-hooks", "errors-and-validation", "full-generated-prompt"] }

@@ -1,49 +1,27 @@
 ---
 title: "Protocol and Types"
-description: "Detailed reference for the core runtime contracts, payloads, and message types."
+description: "Reference for the core ToonUI protocol contracts and message types."
 ---
-
-This is the CONTRACT layer of ToonUI.
-
-If you do not understand these types, you are integrating blindly.
 
 ## `ToonProtocol`
 
-`createToonProtocol()` returns a `ToonProtocol`.
-
-It exposes:
-
-- `prompt`
-- `rules`
-- `catalog`
-- `events`
-- `messages`
+Returned by `createToonProtocol(options)`.
 
 ```ts
-const toon = createToonProtocol();
+const toon = createToonProtocol({ components });
 ```
 
-## `ToonRuntime`
-
-A runtime extends the protocol with execution helpers:
-
-- `components`
-- `parse`
-- `validate`
-- `extractBlocks`
-
-That means a runtime is effectively:
-
-- protocol contract
-- parsing tools
-- validation tools
-- renderer-facing component registry
+| Property | Type | Meaning |
+|---|---|---|
+| `prompt` | `string` | system prompt fragment generated from the active catalog |
+| `rules` | `ToonRules` | enabled components and variants |
+| `catalog` | `ToonActiveCatalog` | active standard component catalog |
+| `events` | `ToonEventsApi` | payload factories |
+| `messages` | `ToonMessagesApi` | payload-to-message converters |
 
 ## `ToonRules`
 
-`rules` is the compact machine-usable representation of the language.
-
-It includes:
+Contains:
 
 - `components`
 - `buttonVariants`
@@ -53,85 +31,27 @@ It includes:
 - `fieldTypes`
 - `chartTypes`
 
-This is useful when composing prompts programmatically.
+## `ToonActiveCatalog`
 
-## `ToonDocument`
+The subset of standard ToonUI components enabled for this app.
 
-The parser returns a `ToonDocument`:
-
-```ts
-type ToonDocument = {
-  type: 'document';
-  body: ToonNode[];
-}
-```
-
-The `body` array is the AST root.
-
-## `ToonBlock`
-
-`extractBlocks()` identifies fenced ToonUI blocks inside larger markdown content.
-
-Each block includes:
-
-- `raw`
-- `language`
-- `start`
-- `end`
-- `complete`
-
-This is useful when parsing model output that mixes prose and UI.
-
-## `ValidationIssue`
-
-Each validation issue contains:
-
-- `code`
-- `message`
-- optional `line`
-- optional `column`
-
-This makes syntax and semantic failures traceable back to the original source.
-
-## `ValidationResult`
-
-Validation returns:
-
-```ts
-{
-  ok: boolean;
-  errors: ValidationIssue[];
-  warnings: ValidationIssue[];
-}
-```
-
-In practice, the most important field is `ok`, but the real debugging value is in `errors`.
+It drives prompt generation and validation.
 
 ## `ReplyPayload`
-
-Used for button-style interactions.
 
 ```ts
 type ReplyPayload = {
   kind: 'ui_reply';
   eventId: string;
   source: 'button';
-  value: string;
   component: 'button';
+  value: string;
   line?: number;
   context?: Record<string, SubmitValue>;
-}
+};
 ```
 
-Important meaning:
-
-- `value` is the app-facing user intent
-- `eventId` uniquely identifies the interaction
-- `context` lets you attach extra structured metadata when needed
-
 ## `SubmitPayload`
-
-Used for form-style interactions.
 
 ```ts
 type SubmitPayload = {
@@ -142,49 +62,13 @@ type SubmitPayload = {
   formTitle: string;
   values: Record<string, SubmitValue>;
   line?: number;
-}
+};
 ```
 
-Important meaning:
+## Message conversion
 
-- `intent` identifies the host-level action
-- `formTitle` is human-facing context
-- `values` is the normalized submitted data
-
-## `ToonModelMessage`
-
-Use this when the next step is feeding the interaction back into the model loop.
-
-It includes:
-
-- `role`
-- `kind`
-- `content`
-- `displayContent`
-- `payload`
-
-## `ToonUIMessage`
-
-Use this when the next step is appending a message into UI/chat state.
-
-It includes:
-
-- `id`
-- `role`
-- `parts`
-- `metadata`
-
-This shape is intentionally friendly to message-based chat interfaces.
-
-## Type aliases worth knowing
-
-- `ToonChatMessage` = model-facing interaction message
-- `ToonChatUIMessage` = UI-facing interaction message
-- `ToonInteractionPayload` = `ReplyPayload | SubmitPayload`
-
-## Practical takeaway
-
-If you remember only one thing, remember this:
-
-- `events` create interaction payloads
-- `messages` convert those payloads for the next host step
+| API | Use when |
+|---|---|
+| `toon.messages.toContent(payload)` | you need the compact serialized protocol text |
+| `toon.messages.toModelMessage(payload)` | the next step goes to the model loop |
+| `toon.messages.toUIMessage(payload)` | your chat state stores UI-message-shaped objects |

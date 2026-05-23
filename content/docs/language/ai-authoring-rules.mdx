@@ -92,26 +92,26 @@ heading <1-6> "Visible text"
 separator
 separator horizontal
 separator vertical
-card "Title":
-form "Title":
+card "Title" [description="..."]:
+form "Title" [description="..."]:
 field <name> <fieldType> "Label" [placeholder="..."] [helper="..."] [required] [options="A|B"] [min=<number>] [max=<number>] [step=<number>] [value="..."]
 button <variant> "Label" reply="Value"
 button <variant> "Label" submit
-confirm <variant> "Title":
+confirm <variant> "Title" [trigger="..."] [description="..."]:
 list "Title":
-item "Title":
+item "Title" [description="..."]:
 badge "Label" <variant>
 alert <variant> "Title":
 table "Title":
-empty "Title":
+empty "Title" [description="..."]:
 tabs "Title":
 tab "Label":
 accordion "Title":
 section "Title":
-dialog "Title":
-sheet "Title" side="left|right|top|bottom":
-popover "Title":
-tooltip "Visible text"
+dialog "Title" [trigger="..."]:
+sheet "Title" [trigger="..."] side="left|right|top|bottom":
+popover "Title" [trigger="..."]:
+tooltip "Visible text" [trigger="..."]
 progress "Label" value=<number> max=<number>
 loading "Visible text"
 toast <variant> "Visible text"
@@ -122,7 +122,7 @@ menu "Title":
 action "Label" reply="Value"
 action "Label" submit
 action "Label" reply="Value" variant="secondary"
-command "Title":
+command "Title" [trigger="..."]:
 action "Label" reply="Value"
 action "Label" submit
 chart <type> "Title" [x="..."] [y="..."]:
@@ -170,6 +170,18 @@ These nodes always require a quoted title:
 | `accordion` | Must include one or more `section` children |
 | `chart` | Must include one or more `series` children, and each `series` must include one or more `point` rows |
 | `field` | `select`, `radio`, and `multiselect` need `options`; `slider` needs `min` and `max`; default values use `value="..."` |
+
+## `description` rule
+
+Use `description="..."` ONLY on:
+
+- `card`
+- `form`
+- `confirm`
+- `item`
+- `empty`
+
+Do NOT invent `description` for other nodes.
 
 ## Variants and families
 

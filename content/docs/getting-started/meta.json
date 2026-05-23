@@ -1,1 +1,1 @@
-{ "title": "Start Here", "defaultOpen": true, "pages": ["start-here", "choose-your-integration-path", "installation", "quickstart", "configuration"] }
+{ "title": "Getting Started", "defaultOpen": true, "pages": ["start-here", "installation", "quickstart", "configuration", "choose-your-integration-path"] }

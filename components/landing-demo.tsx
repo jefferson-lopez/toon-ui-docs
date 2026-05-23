@@ -14,7 +14,7 @@ import { DemoPlayer, demo, demoTarget } from "uitodemo";
 import {
   ToonMessage,
   createToonAdapter,
-  createToonClient,
+  createToonReactRuntime,
   getToonButtonProps,
   getToonInputProps,
   type ToonAlertComponentProps,
@@ -29,7 +29,7 @@ import {
   type ToonReplyPayload,
   type ToonSubmitPayload,
   type ToonTextComponentProps,
-} from "@toon-ui/toon-ui";
+} from "@toon-ui/react";
 import {
   Conversation,
   ConversationContent,
@@ -268,9 +268,8 @@ function DemoToonButton(props: ToonButtonComponentProps) {
   );
 }
 
-const toon = createToonClient({
+const toon = createToonReactRuntime({
   adapter: createToonAdapter({
-    level: "default",
     components: {
       text: DemoToonText,
       badge: DemoToonBadge,
@@ -854,10 +853,7 @@ export function LandingDemo() {
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="mx-auto w-full max-w-[1040px] overflow-hidden"
-    >
+    <div ref={containerRef} className="w-full overflow-hidden">
       <DemoPlayer
         steps={steps}
         isActive={isInView && !hasCompletedPlayback}
@@ -868,12 +864,15 @@ export function LandingDemo() {
         }}
         frameBorderRadius="none"
         showControls={false}
+        baseWidth={1040}
+        baseHeight={600}
         cursor={{
           enabled: true,
           hideNativeCursor: false,
           size: "xxl",
           mobileSize: "xxl",
         }}
+        className="w-full"
       >
         <div className="flex border rounded-md bg-background h-full w-full flex-col overflow-hidden text-muted-foreground">
           <div className="border-b px-3 py-2">

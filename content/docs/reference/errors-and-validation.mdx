@@ -61,6 +61,17 @@ Treat parsing and validation as part of the contract, not as optional polish.
 
 If the host app cares about reliability, it MUST validate generated structure before trusting it.
 
+## Renderer fallback behavior
+
+Validation errors and parse failures should not leak raw internals to end users by accident.
+
+From `v2.0.2`, `ToonMessage` and `ToonRenderer` let the host app control fallback UX through:
+
+- `renderError`
+- `showErrorDetails`
+
+Default behavior hides technical details unless the host explicitly chooses to show them.
+
 ## Next step
 
 1. [Debug Invalid ToonUI](/docs/guides/debug-invalid-toonui)

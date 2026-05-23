@@ -1,131 +1,47 @@
 ---
 title: "Mental Model"
-description: "Understand the core idea behind ToonUI before thinking about components, styling, or adapters."
+description: "The conceptual model behind ToonUI: server teaches, model describes, client renders, app decides."
 ---
 
-If you start by thinking about buttons, cards, or CSS, you are already one layer too low.
-
-Start with the core idea:
-
-> ToonUI is a contract for UI intent between the model and your application.
-
-## The one-sentence model
-
-The model describes the interface.
-
-Your app decides what that interface means.
-
-That is the whole system.
-
-## The three layers
-
-| Layer | Meaning | Owned by |
-|---|---|---|
-| Language | What the model is allowed to describe | `@toon-ui/core` |
-| Rendering | How that description becomes UI | `@toon-ui/react` or `@toon-ui/toon-ui` |
-| Behavior | What happens after interaction | Your app |
-
-## Why this matters
-
-Without this separation, AI apps tend to collapse concerns together:
-
-- prompt rules start carrying product logic
-- rendering becomes tightly coupled to one demo
-- user actions become hard to normalize
-- trust boundaries become blurry
-
-ToonUI exists to keep those layers separate ON PURPOSE.
-
-## The public objects to teach first
-
-### `toon.catalog`
-
-The language contract.
-
-Use it to understand:
-
-- available components
-- valid variants
-- supported field types
-- the shape of the language itself
-
-### `toon.events`
-
-The interaction factory.
-
-Use it to create normalized:
-
-- reply payloads
-- submit payloads
-
-### `toon.messages`
-
-The reinjection layer.
-
-Use it to convert interaction payloads into:
-
-- model-friendly content
-- UI-friendly display content
-- chat message objects
-
-### `toon.parse()` and `toon.validate()`
-
-The inspection and safety layer.
-
-Use them when you need to:
-
-- debug generation
-- validate fixtures
-- verify output before trusting it
-
-### `toon.extractBlocks()`
-
-The separation layer.
-
-Use it when you want to split:
-
-- normal markdown
-- structured ToonUI blocks
-
-## The key boundary
-
-ToonUI is NOT an application framework.
-
-It does not own:
-
-- tools
-- persistence
-- authorization
-- mutations
-- workflows
-- business rules
-
-It gives you a typed language for interface intent and a clean path back into your application loop.
-
-## Practical example
-
-If the model emits:
+ToonUI is a contract between your model and your app.
 
 ```txt
-button secondary "Open details" reply="open:customer-42"
+server teaches -> model describes -> client renders -> app decides
 ```
 
-Then:
+It is not an alternative to JSON renderers like json-render.dev. ToonUI does not try to turn arbitrary JSON into a screen. It teaches the model a small semantic language, validates that language against your active catalog, and lets your app render known components.
 
-- ToonUI knows how to parse and render that
-- ToonUI knows how to create the interaction payload
-- your app decides whether that action fetches data, opens a modal, checks auth, or gets rejected
+## Ownership
 
-That is a clean architecture boundary.
+| Layer | Owner |
+|---|---|
+| Active catalog and prompt | `@toon-ui/core` |
+| Model response generation | your AI SDK/model provider |
+| React rendering | `@toon-ui/react` |
+| Business behavior | your app |
 
-## What to remember
+## Important rule
 
-If you forget everything else, remember this:
+The model does not create new components.
 
-> ToonUI helps the model paint the interface, not run the product.
+It can only emit standard ToonUI components enabled in the active catalog.
 
-## Next step
+```ts
+createToonProtocol({
+  components: ['text', 'card', 'button'],
+});
+```
 
-1. [Boundaries](/docs/architecture/boundaries)
-2. [Syntax](/docs/language/syntax)
-3. [Node Reference](/docs/language/node-reference)
+That prompt will not teach `form`, `table`, or `chart` unless you enable them.
+
+## Interactions are intent, not execution
+
+A button like this:
+
+```txt
+button primary "Delete" reply="delete product 123"
+```
+
+is not a deletion.
+
+It is user intent. Your app decides whether to call a tool, ask for confirmation, check permissions, or ignore it.

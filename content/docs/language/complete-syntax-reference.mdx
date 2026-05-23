@@ -84,7 +84,7 @@ separator vertical
 **Syntax**
 
 ```txt
-card "Title":
+card "Title" [description="..."]:
 ```
 
 **Example**
@@ -101,7 +101,7 @@ card "Customer found":
 **Syntax**
 
 ```txt
-form "Title":
+form "Title" [description="..."]:
 ```
 
 **Required structure**
@@ -167,7 +167,7 @@ button primary "Save" submit
 **Syntax**
 
 ```txt
-confirm <variant> "Title":
+confirm <variant> "Title" [trigger="..."] [description="..."]:
 ```
 
 **Compatibility note**
@@ -178,7 +178,7 @@ confirm <variant> "Title":
 **Example**
 
 ```txt
-confirm danger "Delete customer?":
+confirm danger "Delete customer?" trigger="Review deletion":
   text "This action cannot be undone."
   button secondary "Cancel" reply="cancel"
   button danger "Delete" reply="delete-customer"
@@ -209,7 +209,7 @@ list "Products":
 **Syntax**
 
 ```txt
-item "Title":
+item "Title" [description="..."]:
 ```
 
 **Example**
@@ -275,7 +275,7 @@ table "Sales":
 **Syntax**
 
 ```txt
-empty "Title":
+empty "Title" [description="..."]:
 ```
 
 **Example**
@@ -335,13 +335,13 @@ accordion "Advanced settings":
 **Syntax**
 
 ```txt
-dialog "Title":
+dialog "Title" [trigger="..."]:
 ```
 
 **Example**
 
 ```txt
-dialog "Customer details":
+dialog "Customer details" trigger="Open details":
   text "This is modal content."
 ```
 
@@ -350,13 +350,13 @@ dialog "Customer details":
 **Syntax**
 
 ```txt
-sheet "Title" side="left|right|top|bottom":
+sheet "Title" [trigger="..."] side="left|right|top|bottom":
 ```
 
 **Example**
 
 ```txt
-sheet "Filters" side="right":
+sheet "Filters" trigger="Open filters" side="right":
   text "Choose the filters to apply."
 ```
 
@@ -369,13 +369,13 @@ sheet "Filters" side="right":
 **Syntax**
 
 ```txt
-popover "Title":
+popover "Title" [trigger="..."]:
 ```
 
 **Example**
 
 ```txt
-popover "More details":
+popover "More details" trigger="Show details":
   text "Extra context for this result."
 ```
 
@@ -384,13 +384,13 @@ popover "More details":
 **Syntax**
 
 ```txt
-tooltip "Visible text"
+tooltip "Visible text" [trigger="..."]
 ```
 
 **Example**
 
 ```txt
-tooltip "More information"
+tooltip "More information" trigger="Info"
 ```
 
 ### `progress`
@@ -494,7 +494,7 @@ menu "Quick actions":
 **Syntax**
 
 ```txt
-command "Title":
+command "Title" [trigger="..."]:
 ```
 
 **Required structure**
@@ -504,7 +504,7 @@ command "Title":
 **Example**
 
 ```txt
-command "Jump to":
+command "Jump to" trigger="Open command palette":
   action "Open reports" reply="open-reports"
   action "Create product" reply="start-create-product"
 ```

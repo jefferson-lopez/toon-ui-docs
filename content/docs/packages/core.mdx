@@ -1,88 +1,696 @@
 ---
 title: "@toon-ui/core"
-description: "The protocol foundation of ToonUI: language, validation, prompts, and interaction conversion."
+description: "Complete server-safe API reference for ToonUI core: catalog, prompt, parser, validator, events, messages, and runtime helpers."
 ---
 
-`@toon-ui/core` is the package that defines the contract.
+`@toon-ui/core` is the server-safe ToonUI package.
 
-Use it when you need the server-side language layer, not rendering.
+Use it to:
 
-## Why use `@toon-ui/core`?
+- define the active standard ToonUI catalog for your app
+- generate the model prompt from that catalog
+- parse and validate generated `toon-ui` blocks
+- convert rendered UI interactions into chat/model messages
 
-Because every ToonUI integration starts with the same requirement:
+It does **not** import React. Use `@toon-ui/react` for rendering.
 
-> the model needs a clear, teachable language for describing UI.
+## Install
 
-`@toon-ui/core` gives you that language and the APIs around it.
+```bash
+pnpm add @toon-ui/core
+```
 
-## What it owns
+## Import surface
 
-- official catalog
-- parsing
-- validation
-- prompt generation
-- reply and submit event creation
-- message conversion back into your app or model loop
+```ts
+import {
+  createToonProtocol,
+  createToonCatalog,
+  createRules,
+  createPrompt,
+  parseToonUI,
+  validateToonUI,
+  extractToonBlocks,
+  extractToonSegments,
+} from '@toon-ui/core';
+```
 
-## Most common usage
+## Recommended server setup
 
 ```ts
 import { createToonProtocol } from '@toon-ui/core';
 
-const toon = createToonProtocol();
+const toon = createToonProtocol({
+  components: ['text', 'card', 'form', 'field', 'button', 'table'],
+});
 
 const system = [
   toon.prompt,
+  'You are helping users compare products.',
   'Available tools:',
   '- searchProducts(query)',
 ].join('\n\n');
 ```
 
-Here, `toon.prompt` is the canonical ToonUI contract.
-Your app-specific instructions still belong AFTER it.
+This is the most important API in core. It creates the prompt and all protocol helpers from one active catalog.
 
-## What `createToonProtocol()` gives you
+## API map
+
+| Area | APIs |
+|---|---|
+| Protocol | `createToonProtocol`, `createToonCoreRuntime` |
+| Catalog | `createToonCatalog`, `assertToonCatalogCoverage`, `listToonCatalogComponentKeys`, `listToonComponentKeys`, `TOON_CATALOG` |
+| Prompt | `createRules`, `createPrompt`, prompt fragment helpers |
+| Parsing | `parseToonUI`, `ToonSyntaxError` |
+| Validation | `validateToonUI` |
+| Extraction | `extractToonBlocks`, `extractToonSegments` |
+| Events | `createReplyEvent`, `createSubmitEvent` |
+| Messages | `toToonEventContent`, `toToonDisplayContent`, `toToonModelMessage`, `toToonUIMessage` |
+| Constants | component keys, variants, field types, chart types, sheet sides, separator orientations |
+
+---
+
+## Protocol APIs
+
+### `createToonProtocol(options?)`
+
+Creates the main server protocol object.
 
 ```ts
-const toon = createToonProtocol();
-
-toon.catalog.components.form.syntax;
-toon.events.reply('Open details');
-toon.events.submit('create_product', { name: 'Coca-Cola' });
-toon.messages.toContent(payload);
-toon.messages.toModelMessage(payload);
-toon.messages.toUIMessage(payload);
+const toon = createToonProtocol({
+  components: ['text', 'button'],
+});
 ```
 
-## Mental model
+#### Parameters
 
-Think about `@toon-ui/core` as three things:
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `options.components` | `readonly ToonCatalogComponentKey[]` or component-key map | No | Standard ToonUI components enabled for this app. |
+| `options.catalog` | `ToonActiveCatalog` | No | Prebuilt active catalog. If provided, it wins over `components`. |
 
-- `catalog` = what the language supports
-- `events` = how user intent becomes structured payloads
-- `messages` = how that intent goes back into your app loop
+#### Returns
 
-## What it does NOT do
+```ts
+type ToonProtocol = {
+  prompt: string;
+  rules: ToonRules;
+  catalog: ToonActiveCatalog;
+  events: ToonEventsApi;
+  messages: ToonMessagesApi;
+};
+```
 
-`@toon-ui/core` does NOT render React.
+| Property | Description |
+|---|---|
+| `prompt` | Full system-prompt fragment generated from the active catalog. |
+| `rules` | Compact machine-readable rules: enabled components and variants. |
+| `catalog` | Active catalog used for prompt generation and validation. |
+| `events.reply` | Creates `ui_reply` payloads. |
+| `events.submit` | Creates `ui_submit` payloads. |
+| `messages.toContent` | Serializes a payload into compact protocol text. |
+| `messages.toDisplayContent` | Creates human-readable display text. |
+| `messages.toModelMessage` | Converts payload into model-facing chat message. |
+| `messages.toUIMessage` | Converts payload into UI-message-shaped chat entry. |
 
-If you need rendering, pair it with:
+#### When to use it
 
-- `@toon-ui/toon-ui` for the fastest path
-- `@toon-ui/react` for explicit adapter ownership
+Use this in server routes, server actions, workers, or any non-React environment where you need the ToonUI prompt or interaction message helpers.
 
-## Best fit
+---
 
-Use `@toon-ui/core` when you are building:
+### `createToonCoreRuntime(options?)`
 
-- server prompts
-- model contracts
-- validation pipelines
-- tooling around the ToonUI language
+Creates a non-React runtime that extends the protocol with parser/validator helpers and a generic component registry.
 
-## Next step
+```ts
+const runtime = createToonCoreRuntime({
+  components: {
+    text: TextRenderer,
+    button: ButtonRenderer,
+  },
+});
+```
 
-1. [Protocol and Types](/docs/reference/protocol-and-types)
-2. [Errors and Validation](/docs/reference/errors-and-validation)
-3. [Events and Messages](/docs/reference/events-and-messages)
-4. [Full Generated Prompt](/docs/reference/full-generated-prompt)
+#### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `options.components` | `ToonComponentRegistry` | No | Generic component registry. In React apps, prefer `@toon-ui/react`. |
+| `options.catalog` | `ToonActiveCatalog` | No | Active catalog to use instead of deriving one from component keys. |
+
+#### Returns
+
+```ts
+type ToonRuntime<TComponents> = ToonProtocol & {
+  components: TComponents;
+  parse: typeof parseToonUI;
+  validate: typeof validateToonUI;
+  extractBlocks: typeof extractToonBlocks;
+};
+```
+
+#### When to use it
+
+Use it for framework-agnostic runtimes, tests, tooling, or non-React adapters. Most React applications should use `createToonReactRuntime` from `@toon-ui/react`.
+
+---
+
+## Catalog APIs
+
+### `createToonCatalog(options?)`
+
+Creates the active catalog used by prompt generation and validation.
+
+```ts
+const catalog = createToonCatalog({
+  components: ['text', 'card', 'button'],
+});
+```
+
+#### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `options.components` | `readonly ToonCatalogComponentKey[]` or partial key map | No | Standard ToonUI component keys to enable. If omitted, returns the full official catalog. |
+
+#### Returns
+
+```ts
+type ToonActiveCatalog = {
+  components: Partial<Record<ToonCatalogComponentKey, ToonCatalogComponent>>;
+  variants: ToonCatalog['variants'];
+  examples: {
+    valid: readonly string[];
+    invalid: readonly string[];
+  };
+};
+```
+
+#### Important behavior
+
+The catalog is not free-form. It only accepts standard parseable ToonUI components.
+
+Good:
+
+```ts
+createToonCatalog({ components: ['form', 'field', 'button'] });
+```
+
+Bad:
+
+```ts
+createToonCatalog({ components: ['delete_product'] as never });
+```
+
+Business actions belong in replies, submits, tools, and application code — not in custom component names.
+
+---
+
+### `assertToonCatalogCoverage(keys)`
+
+Validates component dependency coverage.
+
+```ts
+assertToonCatalogCoverage(['form', 'field', 'button']);
+```
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| `keys` | `readonly ToonCatalogComponentKey[]` | Component keys enabled by the app. |
+
+#### Returns
+
+`void`. Throws when dependencies are missing.
+
+#### Example failure
+
+```ts
+assertToonCatalogCoverage(['form']);
+// Error: "form" requires "field", "button"
+```
+
+#### Dependency rules
+
+| Enabled component | Required components |
+|---|---|
+| `form` | `field`, `button` |
+| `list` | `item` |
+| `tabs` | `tab` |
+| `accordion` | `section` |
+| `menu` | `action` |
+| `command` | `action` |
+| `chart` | `series`, `point` |
+| `breadcrumb` | `crumb` |
+
+---
+
+### `listToonCatalogComponentKeys()`
+
+Returns all standard ToonUI component keys.
+
+```ts
+const keys = listToonCatalogComponentKeys();
+```
+
+#### Returns
+
+```ts
+Array<ToonComponentKey>
+```
+
+Use it for docs, debug tools, tests, or UI that lets developers inspect available standard components.
+
+---
+
+### `listToonComponentKeys()`
+
+Backward-compatible alias for `listToonCatalogComponentKeys()`.
+
+```ts
+const keys = listToonComponentKeys();
+```
+
+---
+
+### Catalog constants
+
+| Constant | Description |
+|---|---|
+| `TOON_CATALOG` | Full official standard catalog. |
+| `TOON_COMPONENT_KEYS` | All standard component keys. |
+| `TOON_BUTTON_VARIANTS` | `primary`, `secondary`, `danger`, `ghost`, `outline`. |
+| `TOON_BADGE_VARIANTS` | `success`, `warning`, `danger`, `neutral`, `info`. |
+| `TOON_ALERT_VARIANTS` | `info`, `success`, `warning`, `danger`. |
+| `TOON_CONFIRM_VARIANTS` | `neutral`, `info`, `warning`, `danger`, `success`. |
+| `TOON_FIELD_TYPES` | Supported field input types. |
+| `TOON_CHART_TYPES` | `bar`, `line`, `area`, `pie`. |
+| `TOON_SHEET_SIDES` | `left`, `right`, `top`, `bottom`. |
+| `TOON_SEPARATOR_ORIENTATIONS` | `horizontal`, `vertical`. |
+
+---
+
+## Prompt APIs
+
+### `createRules(catalog?)`
+
+Creates compact rules from an active catalog.
+
+```ts
+const catalog = createToonCatalog({ components: ['text', 'button'] });
+const rules = createRules(catalog);
+```
+
+#### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `catalog` | `ToonActiveCatalog` | No | Active catalog. Defaults to the full official catalog. |
+
+#### Returns
+
+```ts
+type ToonRules = {
+  components: readonly ToonComponentKey[];
+  buttonVariants: readonly ButtonVariant[];
+  badgeVariants: readonly BadgeVariant[];
+  alertVariants: readonly AlertVariant[];
+  confirmVariants: readonly ConfirmVariant[];
+  fieldTypes: readonly FieldType[];
+  chartTypes: readonly ChartType[];
+};
+```
+
+Use it for custom prompt composition. Most apps should use `createToonProtocol` instead.
+
+---
+
+### `createPrompt(rules, catalog?)`
+
+Builds the full ToonUI model instruction string.
+
+```ts
+const prompt = createPrompt(rules, catalog);
+```
+
+#### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `rules` | `ToonRules` | Yes | Enabled components and variants. |
+| `catalog` | `ToonActiveCatalog` | No | Active catalog used for overview, syntax, coverage, and examples. |
+
+#### Returns
+
+`string` — the complete ToonUI prompt fragment.
+
+#### Prefer this instead
+
+```ts
+const toon = createToonProtocol({ components });
+const prompt = toon.prompt;
+```
+
+Use `createPrompt` directly only for advanced prompt composition.
+
+---
+
+### Prompt fragment helpers
+
+These helpers return `string` fragments used by `createPrompt`.
+
+| Helper | Parameters | Returns | Purpose |
+|---|---|---|---|
+| `createComponentPrompt(rules)` | `ToonRules` | `string` | Lists allowed components and variants. |
+| `createCatalogOverviewPrompt(catalog?)` | `ToonActiveCatalog` | `string` | Groups enabled components by catalog group. |
+| `createCatalogCoveragePrompt(catalog?)` | `ToonActiveCatalog` | `string` | Checklist for enabled components. |
+| `createSyntaxPrompt(catalog?)` | `ToonActiveCatalog` | `string` | Canonical syntax rules for enabled components. |
+| `createFallbackPrompt()` | none | `string` | Rules for what the model should do when uncertain. |
+| `createSafetyPrompt()` | none | `string` | Hard safety rules. |
+| `createCompositionPrompt()` | none | `string` | UI composition guidance. |
+| `createFormBestPracticesPrompt()` | none | `string` | Form/data-capture guidance. |
+| `createDecisionPrompt()` | none | `string` | When to prefer ToonUI over prose. |
+| `createSelfCheckPrompt()` | none | `string` | Final syntax self-check instructions. |
+| `createExamplesPrompt(catalog?)` | `ToonActiveCatalog` | `string` | Valid/invalid examples. |
+
+---
+
+## Parser and extraction APIs
+
+### `parseToonUI(source)`
+
+Parses raw ToonUI source into an AST.
+
+```ts
+const document = parseToonUI('text "Hello"');
+```
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| `source` | `string` | Raw ToonUI DSL source, without markdown fences. |
+
+#### Returns
+
+```ts
+type ToonDocument = {
+  type: 'document';
+  body: ToonNode[];
+};
+```
+
+#### Throws
+
+Throws `ToonSyntaxError` for invalid syntax or unknown components.
+
+```ts
+try {
+  parseToonUI('sidebar "No"');
+} catch (error) {
+  if (error instanceof ToonSyntaxError) {
+    console.log(error.code, error.line, error.column);
+  }
+}
+```
+
+---
+
+### `ToonSyntaxError`
+
+Structured parser error.
+
+| Property | Type | Description |
+|---|---|---|
+| `name` | `'ToonSyntaxError'` | Error name. |
+| `code` | `ToonErrorCode` | Machine-readable error code. |
+| `line` | `number` | Source line. |
+| `column` | `number` | Source column. |
+| `message` | `string` | Human-readable message. |
+
+---
+
+### `extractToonBlocks(content)`
+
+Extracts fenced ToonUI blocks from mixed markdown.
+
+```ts
+const blocks = extractToonBlocks(markdown);
+```
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| `content` | `string` | Assistant output containing markdown and optional fenced `toon-ui` blocks. |
+
+#### Returns
+
+```ts
+type ToonBlock = {
+  raw: string;
+  language: 'toon-ui';
+  start: number;
+  end: number;
+  complete: boolean;
+};
+```
+
+`complete` is `false` for renderable partial blocks while streaming.
+
+---
+
+### `extractToonSegments(content)`
+
+Splits mixed markdown and ToonUI blocks while preserving order.
+
+```ts
+const segments = extractToonSegments(content);
+```
+
+#### Returns
+
+```ts
+type ToonContentSegment = ToonMarkdownSegment | ToonUIBlockSegment;
+```
+
+Use this when a renderer needs to preserve the sequence of prose, UI, prose, UI.
+
+---
+
+## Validation API
+
+### `validateToonUI(document, catalog?)`
+
+Validates an AST semantically and, optionally, against an active catalog.
+
+```ts
+const ast = parseToonUI(source);
+const result = validateToonUI(ast, toon.catalog);
+```
+
+#### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `document` | `ToonDocument` | Yes | Parsed AST. |
+| `catalog` | `ToonActiveCatalog` | No | Active catalog. Defaults to full official catalog. |
+
+#### Returns
+
+```ts
+type ValidationResult = {
+  ok: boolean;
+  errors: ValidationIssue[];
+  warnings: ValidationIssue[];
+};
+```
+
+#### Common errors
+
+| Code | Meaning |
+|---|---|
+| `INVALID_COMPONENT` | Component exists in grammar but is not enabled in active catalog, or unknown component at parse time. |
+| `INVALID_PROP` | Invalid prop value or invalid structural shape. |
+| `INVALID_VARIANT` | Unsupported variant. |
+| `MISSING_REQUIRED_FIELD` | Required title, field, button, or value is missing. |
+| `INVALID_NESTING` | Child node is not allowed in that parent. |
+| `INVALID_SYNTAX` | Parser-level syntax problem. |
+| `UNSAFE_CONTENT` | Raw HTML or script-like text was detected. |
+
+---
+
+## Event APIs
+
+### `createReplyEvent(valueOrPayload, metadata?)`
+
+Creates a `ui_reply` payload, usually for button interactions.
+
+```ts
+const payload = createReplyEvent('Open details', { productId: 123 });
+```
+
+#### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `valueOrPayload` | `string \| ReplyPayload` | Yes | Reply value or existing payload to return unchanged. |
+| `metadata` | `Record&lt;string, string \| number \| boolean&gt;` | No | Extra context when first argument is a string. |
+
+#### Returns
+
+```ts
+type ReplyPayload = {
+  kind: 'ui_reply';
+  eventId: string;
+  source: 'button';
+  component: 'button';
+  value: string;
+  line?: number;
+  context?: Record<string, SubmitValue>;
+};
+```
+
+---
+
+### `createSubmitEvent(intentOrPayload, values?)`
+
+Creates a `ui_submit` payload, usually for form interactions.
+
+```ts
+const payload = createSubmitEvent('create_product', {
+  name: 'Coca-Cola',
+  price: 2500,
+});
+```
+
+#### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `intentOrPayload` | `string \| SubmitPayload` | Yes | Submit intent or existing payload to return unchanged. |
+| `values` | `Record&lt;string, string \| number \| boolean&gt;` | No | Submitted form values when first argument is a string. |
+
+#### Returns
+
+```ts
+type SubmitPayload = {
+  kind: 'ui_submit';
+  eventId: string;
+  source: 'form';
+  intent: string;
+  formTitle: string;
+  values: Record<string, SubmitValue>;
+  line?: number;
+};
+```
+
+---
+
+## Message conversion APIs
+
+### `toToonEventContent(payload)`
+
+Serializes a reply or submit payload into compact protocol text.
+
+```ts
+const content = toToonEventContent(payload);
+```
+
+Returns `string`.
+
+---
+
+### `toToonDisplayContent(payload)`
+
+Creates human-readable display content for chat history.
+
+```ts
+const display = toToonDisplayContent(payload);
+```
+
+Returns `string`.
+
+For submit payloads, field labels are used when a form node is attached.
+
+---
+
+### `toToonModelMessage(payload)`
+
+Creates a model-facing message object.
+
+```ts
+const message = toToonModelMessage(payload);
+```
+
+#### Returns
+
+```ts
+type ToonModelMessage<TPayload> = {
+  role: 'user';
+  kind: TPayload['kind'];
+  content: string;
+  displayContent: string;
+  payload: TPayload;
+};
+```
+
+Use it when the next turn goes back to the LLM/model loop.
+
+---
+
+### `toToonUIMessage(payload)`
+
+Creates a UI-message-shaped object.
+
+```ts
+const message = toToonUIMessage(payload);
+```
+
+#### Returns
+
+```ts
+type ToonUIMessage<TPayload> = {
+  id: string;
+  role: 'user';
+  parts: [{ type: 'text'; text: string }];
+  metadata: {
+    displayContent: string;
+    kind: TPayload['kind'];
+  };
+};
+```
+
+Use it when your chat state stores UI message objects, such as AI SDK-style message state.
+
+---
+
+## Type exports worth knowing
+
+| Type | Meaning |
+|---|---|
+| `ToonProtocol` | Return type of `createToonProtocol`. |
+| `ToonRuntime` | Protocol plus parser/validator/runtime helpers. |
+| `ToonActiveCatalog` | Active component subset. |
+| `ToonCatalogComponentKey` | Standard component key accepted by catalog config. |
+| `ToonRules` | Enabled components and variants. |
+| `ToonDocument` | AST root from `parseToonUI`. |
+| `ToonNode` | Union of all AST node types. |
+| `ToonNodeByType` | Node lookup map keyed by component type. |
+| `ToonBlock` | Extracted fenced block. |
+| `ValidationResult` | Result from `validateToonUI`. |
+| `ValidationIssue` | Single validation error/warning. |
+| `ReplyPayload` | Button-style interaction payload. |
+| `SubmitPayload` | Form-style interaction payload. |
+| `ToonInteractionPayload` | `ReplyPayload \| SubmitPayload`. |
+| `ToonModelMessage` | Model-facing interaction message. |
+| `ToonUIMessage` | UI-state-friendly interaction message. |
+
+## Read next
+
+- [Prompt API](/docs/reference/prompt-api)
+- [Events and Messages](/docs/reference/events-and-messages)
+- [Protocol and Types](/docs/reference/protocol-and-types)
+- [@toon-ui/react](/docs/packages/react)

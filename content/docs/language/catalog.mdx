@@ -1,57 +1,202 @@
 ---
 title: "Catalog"
-description: "The current official component catalog exposed by @toon-ui/core."
+description: "How to configure the official ToonUI component catalog exposed by @toon-ui/core."
 ---
 
 The official catalog comes from `@toon-ui/core` and defines what the language supports today.
 
-Hard rule:
+The catalog is configurable, but it is **not free-form**.
 
-- use ONLY this catalog
-- do NOT invent pseudo-components like `header`, `footer`, `input`, `modal`, `grid`, or `divider`
+You do this:
 
-## Component groups
+```ts
+const components = ['text', 'card', 'button'] as const;
+```
 
-| Group | Components |
+You do **not** do this:
+
+```ts
+const components = ['delete_product', 'invoiceSummary'] as const;
+```
+
+Those are business concepts, not ToonUI components. Business intent belongs in `reply="..."`, submitted form values, tools, routes, server actions, and application code.
+
+## How catalog configuration works
+
+One component key controls three things:
+
+1. what the server teaches the model in the prompt
+2. what the validator accepts from model output
+3. what React components your client must register to render that output
+
+```ts
+// shared/catalog.ts
+export const toonComponents = [
+  'text',
+  'card',
+  'form',
+  'field',
+  'button',
+  'table',
+] as const;
+```
+
+```ts
+// server/toon.ts
+import { createToonProtocol } from '@toon-ui/core';
+import { toonComponents } from './shared/catalog';
+
+export const toon = createToonProtocol({
+  components: toonComponents,
+});
+```
+
+```tsx
+// client/toon-runtime.tsx
+'use client';
+
+import { createToonReactRuntime } from '@toon-ui/react';
+import { toonComponents } from './shared/catalog';
+
+export const toon = createToonReactRuntime({
+  components: {
+    text: TextComponent,
+    card: CardComponent,
+    form: FormComponent,
+    field: FieldComponent,
+    button: ButtonComponent,
+    table: TableComponent,
+  },
+});
+```
+
+The array and the React registry must describe the same active surface. If the model emits a component outside that surface, ToonUI rejects it instead of silently rendering unsupported UI.
+
+## Official component matrix
+
+Use this matrix when deciding what to enable.
+
+| Key | Group | Purpose | Required children/dependencies | Root? |
+|---|---|---|---|---|
+| `text` | Content | Visible copy. | — | Yes |
+| `heading` | Content | Semantic heading hierarchy. | — | Yes |
+| `separator` | Content | Visual divider. | — | Yes |
+| `badge` | Content | Short semantic status label. | — | Yes |
+| `card` | Structure | General content container. | Can contain other enabled nodes. | Yes |
+| `list` | Structure | Repeated structured results. | Requires `item`. | Yes |
+| `item` | Structure | Single list entry. | Usually used inside `list`; can contain other enabled nodes. | Structural |
+| `table` | Structure | Exact tabular data. | Uses `columns:` and `row:` lines. | Yes |
+| `empty` | Structure/Feedback | Zero-result state. | Can contain other enabled nodes. | Yes |
+| `tabs` | Structure | Parallel grouped views. | Requires `tab`. | Yes |
+| `tab` | Structure | Single tabs panel. | Only valid inside `tabs`. | No |
+| `accordion` | Structure | Progressive disclosure. | Requires `section`. | Yes |
+| `section` | Structure | Single accordion section. | Only valid inside `accordion`. | No |
+| `form` | Capture | Structured data capture. | Requires `field` and `button`. | Yes |
+| `field` | Capture | Form input primitive. | Only useful inside `form`. | Structural |
+| `button` | Capture | Reply or submit interaction. | — | Yes |
+| `confirm` | Capture | Confirmation flow container. | Can contain other enabled nodes, usually `text` and `button`. | Yes |
+| `alert` | Feedback | Important callout. | Can contain other enabled nodes. | Yes |
+| `progress` | Feedback | Deterministic progress indicator. | — | Yes |
+| `loading` | Feedback | Transient loading state. | — | Yes |
+| `toast` | Feedback | Ephemeral result feedback. | — | Yes |
+| `dialog` | Overlay | Modal interaction container. | Can contain other enabled nodes. | Yes |
+| `sheet` | Overlay | Edge-attached contextual panel. | Can contain other enabled nodes. | Yes |
+| `popover` | Overlay | Inline contextual overlay. | Can contain other enabled nodes. | Yes |
+| `tooltip` | Overlay | Short contextual hint. | — | Yes |
+| `breadcrumb` | Navigation | Hierarchical path navigation. | Requires `crumb`. | Yes |
+| `crumb` | Navigation | Single breadcrumb step. | Only valid inside `breadcrumb`. | No |
+| `pagination` | Navigation | Page navigation state. | — | Yes |
+| `menu` | Navigation | List of actions. | Requires `action`. | Yes |
+| `command` | Navigation | Command-palette style actions. | Requires `action`. | Yes |
+| `action` | Navigation | Single menu/command action. | Only valid inside `menu` or `command`. | No |
+| `chart` | Analytics | Trend or comparison visualization. | Requires `series` and `point`. | Yes |
+| `series` | Analytics | Chart data series. | Only valid inside `chart`; requires `point`. | No |
+| `point` | Analytics | Single chart data point. | Only valid inside `series`. | No |
+
+## Dependency rules
+
+Some keys are not useful by themselves because the parser and validator expect a parent/child shape.
+
+| If you enable | You must also enable |
 |---|---|
-| Content | `text`, `heading`, `separator`, `badge` |
-| Structure | `card`, `list`, `item`, `table`, `empty`, `tabs`, `accordion` |
-| Capture | `form`, `field`, `button`, `confirm` |
-| Overlay | `dialog`, `sheet`, `popover`, `tooltip` |
-| Feedback | `alert`, `progress`, `loading`, `toast` |
-| Navigation | `breadcrumb`, `pagination`, `menu`, `command` |
-| Analytics | `chart` |
+| `form` | `field`, `button` |
+| `list` | `item` |
+| `tabs` | `tab` |
+| `accordion` | `section` |
+| `menu` | `action` |
+| `command` | `action` |
+| `chart` | `series`, `point` |
+| `breadcrumb` | `crumb` |
 
-## Official components
+ToonUI throws early when this configuration is invalid. That is intentional. A broken catalog should fail during setup, not after the model has already produced unusable UI.
 
-- `text`
-- `heading`
-- `separator`
-- `card`
-- `form`
-- `field`
-- `button`
-- `confirm`
-- `list`
-- `item`
-- `badge`
-- `alert`
-- `table`
-- `empty`
-- `tabs`
-- `accordion`
-- `dialog`
-- `sheet`
-- `popover`
-- `tooltip`
-- `progress`
-- `loading`
-- `toast`
-- `breadcrumb`
-- `pagination`
-- `menu`
-- `command`
-- `chart`
+## Configure by capability
+
+These are examples, not exported presets. ToonUI does not ship a ready-made design system or a default UI catalog.
+
+### Text-only responses
+
+```ts
+const components = ['text', 'heading', 'separator'] as const;
+```
+
+Use this when the model should only structure copy.
+
+### Cards and simple actions
+
+```ts
+const components = ['text', 'heading', 'badge', 'card', 'button'] as const;
+```
+
+Use this for entity summaries, status, and simple reply actions.
+
+### Forms
+
+```ts
+const components = ['text', 'form', 'field', 'button'] as const;
+```
+
+If you enable `form`, you MUST enable `field` and `button`.
+
+### Search results and empty states
+
+```ts
+const components = ['text', 'list', 'item', 'badge', 'button', 'empty'] as const;
+```
+
+Use this for repeated entities and zero-result flows.
+
+### Exact data
+
+```ts
+const components = ['text', 'table'] as const;
+```
+
+Use this when columns and exact values matter.
+
+### Navigation actions
+
+```ts
+const components = ['breadcrumb', 'crumb', 'pagination', 'menu', 'command', 'action'] as const;
+```
+
+Use this only when your app has matching navigation/action behavior.
+
+### Charts
+
+```ts
+const components = ['chart', 'series', 'point'] as const;
+```
+
+Use this when your React app has a real chart adapter. If not, do not enable it.
+
+### Overlays
+
+```ts
+const components = ['text', 'dialog', 'sheet', 'popover', 'tooltip', 'button'] as const;
+```
+
+Use overlays only when your UI shell can render them correctly.
 
 ## Variants and type families
 
@@ -61,13 +206,66 @@ Hard rule:
 | Badge variants | `success`, `warning`, `danger`, `neutral`, `info` |
 | Alert variants | `info`, `success`, `warning`, `danger` |
 | Confirm variants | `neutral`, `info`, `warning`, `danger`, `success` |
+| Field types | `text`, `email`, `number`, `password`, `date`, `time`, `textarea`, `select`, `checkbox`, `radio`, `switch`, `combobox`, `otp`, `slider`, `multiselect` |
 | Chart types | `bar`, `line`, `area`, `pie` |
 | Sheet sides | `left`, `right`, `top`, `bottom` |
 | Separator orientations | `horizontal`, `vertical` |
 
-## Field types
+## Official `description` support
 
-`text`, `email`, `number`, `password`, `date`, `time`, `textarea`, `select`, `checkbox`, `radio`, `switch`, `combobox`, `otp`, `slider`, `multiselect`
+`description="..."` is officially supported on:
+
+- `card`
+- `form`
+- `confirm`
+- `item`
+- `empty`
+
+Do not add `description` everywhere just because your design system has subtitles. The language only accepts it where the parser supports it.
+
+## Official `trigger` support
+
+`trigger="..."` is officially supported on nodes that may need a launcher label:
+
+- `confirm`
+- `dialog`
+- `sheet`
+- `popover`
+- `tooltip`
+- `command`
+
+The trigger is only a label. Your React host still controls open/close behavior.
+
+## Server and client must agree
+
+Bad configuration:
+
+```ts
+// server teaches table
+createToonProtocol({ components: ['text', 'table'] });
+
+// client cannot render table
+createToonReactRuntime({
+  components: {
+    text: TextComponent,
+  },
+});
+```
+
+Correct configuration:
+
+```ts
+const components = ['text', 'table'] as const;
+
+createToonProtocol({ components });
+
+createToonReactRuntime({
+  components: {
+    text: TextComponent,
+    table: TableComponent,
+  },
+});
+```
 
 ## Important modeling rule
 
@@ -83,7 +281,7 @@ The catalog should stay generic. Your app decides what those actions mean.
 
 ## Read next
 
-1. [AI Authoring Rules](/docs/language/ai-authoring-rules)
-2. [@toon-ui/toon-ui](/docs/packages/toon-ui)
-3. [Protocol and Types](/docs/reference/protocol-and-types)
+1. [Complete Syntax Reference](/docs/language/complete-syntax-reference)
+2. [AI Authoring Rules](/docs/language/ai-authoring-rules)
+3. [@toon-ui/react](/docs/packages/react)
 4. [Errors and Validation](/docs/reference/errors-and-validation)

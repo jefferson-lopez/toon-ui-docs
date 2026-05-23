@@ -1,89 +1,136 @@
 ---
 title: "Vercel AI SDK"
-description: "Optional integration guide for teams that already use Vercel AI SDK or want that specific host-loop style."
+description: "The recommended ToonUI integration path for React and Next.js apps."
 ---
 
-This guide is OPTIONAL.
+This is the primary integration path for ToonUI documentation.
 
-Use it only if your app already uses Vercel AI SDK or you want that specific loop style.
+Use AI SDK for the chat/model loop. Use ToonUI for the UI protocol and rendering.
 
-ToonUI does NOT require Vercel AI SDK.
+## Ownership map
 
-The important rule with Vercel AI SDK is simple:
+| Layer | Owns |
+|---|---|
+| `@toon-ui/core` | active catalog, generated prompt, parser, validator, events, messages |
+| AI SDK | streaming, model calls, chat message transport |
+| `@toon-ui/react` | rendering and user interaction capture |
+| Your app | tools, persistence, auth, business behavior |
 
-> Let the model generate ToonUI, but let your app keep the chat state and side effects.
+## Install
 
-## Recommended pattern
+```bash
+pnpm add @toon-ui/core @toon-ui/react ai @ai-sdk/react @ai-sdk/openai
+```
 
-Use `toon.messages.toUIMessage(payload)` to append structured user intent back into `useChat`-style state.
+## Shared component keys
+
+```ts title="lib/toon-components.ts"
+export const toonComponentKeys = ['text', 'card', 'form', 'field', 'button', 'table'] as const;
+```
+
+## Server route
+
+```ts title="app/api/chat/route.ts"
+import { openai } from '@ai-sdk/openai';
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
+import { createToonProtocol } from '@toon-ui/core';
+import { toonComponentKeys } from '@/lib/toon-components';
+
+const toon = createToonProtocol({ components: toonComponentKeys });
+
+const system = [
+  toon.prompt,
+  'You are a product assistant.',
+  'Use ToonUI when a card, table, form, or button reduces friction.',
+  'Available tools:',
+  '- searchProducts(query)',
+].join('\n\n');
+
+export async function POST(request: Request) {
+  const { messages } = (await request.json()) as { messages: UIMessage[] };
+
+  const result = streamText({
+    model: openai('gpt-4o-mini'),
+    system,
+    messages: await convertToModelMessages(messages),
+  });
+
+  return result.toUIMessageStreamResponse();
+}
+```
+
+## Client renderer
+
+```tsx title="components/chat.tsx"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { ToonMessage, createToonReactRuntime } from '@toon-ui/react';
+import { MessageResponse } from '@/components/ai-elements/message';
+
+const toon = createToonReactRuntime({
+  components: {
+    text: TextComponent,
+    card: CardComponent,
+    form: FormComponent,
+    field: FieldComponent,
+    button: ButtonComponent,
+    table: TableComponent,
+  },
+});
+
+export function Chat() {
+  const { messages, sendMessage, setMessages } = useChat();
+
+  return messages.map((message) => {
+    const content = message.parts
+      .filter((part) => part.type === 'text')
+      .map((part) => part.text ?? '')
+      .join('\n\n');
+
+    if (message.role !== 'assistant') return <div key={message.id}>{content}</div>;
+
+    return (
+      <ToonMessage
+        key={message.id}
+        content={content}
+        runtime={toon}
+        renderMarkdown={(markdown) => <MessageResponse>{markdown}</MessageResponse>}
+        renderError={(error) => <MyError details={error.details} />}
+        onReply={(payload) => setMessages((current) => [...current, toon.messages.toUIMessage(payload)])}
+        onSubmit={(payload) => setMessages((current) => [...current, toon.messages.toUIMessage(payload)])}
+      />
+    );
+  });
+}
+```
+
+## Why interactions go back as messages
+
+ToonUI does not execute business logic.
+
+A button click becomes a structured payload. Your app decides whether that payload should:
+
+- go back to the model
+- call a tool
+- update local UI state
+- hit an API route
+- be ignored because of permissions
+
+That boundary is the point.
+
+## Use another SDK
+
+If you do not use AI SDK, keep this part:
+
+```ts
+const toon = createToonProtocol({ components });
+```
+
+and this part:
 
 ```tsx
-onReply={(payload) => {
-  const next = toon.messages.toUIMessage(payload);
-  append(next);
-}}
+const toon = createToonReactRuntime({ components });
 ```
 
-## Why this matters
-
-This keeps three things separate:
-
-- the model output
-- the rendered interaction surface
-- the app-owned message loop
-
-## When to use `toModelMessage`
-
-If your host loop expects a compact normalized user message for the next model turn, use:
-
-```ts
-const next = toon.messages.toModelMessage(payload);
-```
-
-That gives you:
-
-- `content` for the model
-- `displayContent` for UI
-- the original typed `payload`
-
-## Practical rule
-
-- use `toUIMessage()` for UI state
-- use `toModelMessage()` for LLM loop integration
-
-## What ToonUI already resolves vs what you still compose
-
-| Need | Resolved by ToonUI? | How |
-|------|----------------------|-----|
-| Typed reply payload | Yes | `toon.events.reply()` / UI handlers |
-| Typed submit payload | Yes | `toon.events.submit()` / UI handlers |
-| Convert payload to UI message | Yes | `toon.messages.toUIMessage()` |
-| Convert payload to model message | Yes | `toon.messages.toModelMessage()` |
-| Human display label from a ToonUI payload | Yes | `toon.messages.toDisplayContent()` |
-| Canonical ToonUI system prompt | Yes | `toon.prompt` |
-| Read plain text from any arbitrary AI SDK `UIMessage` | No | host app responsibility |
-| Prefer `metadata.displayContent` when rendering stored user messages | No | host app responsibility |
-| Combine your app system prompt with ToonUI protocol prompt | No | host app responsibility |
-
-## Recommended composition
-
-Use this mental model:
-
-- ToonUI owns the **protocol**
-- your app owns the **message history**
-- AI SDK owns the **transport and message loop**
-
-So the right composition is:
-
-```ts
-const system = prependToonProtocolPrompt(systemPrompt, toon.prompt);
-```
-
-ToonUI gives you the protocol prompt.
-
-Your app still decides how to merge that prompt with the rest of your system instructions and how to read arbitrary stored `UIMessage` objects.
-
-## Read next
-
-1. [Events and Messages](/docs/reference/events-and-messages)
-2. [React Runtime and Hooks](/docs/reference/react-runtime-and-hooks)
+Replace only the model transport and message storage.

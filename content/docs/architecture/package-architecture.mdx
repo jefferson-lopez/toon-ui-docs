@@ -1,86 +1,48 @@
 ---
 title: "Package Architecture"
-description: "Understand how the ToonUI packages fit together and which one to adopt first."
+description: "Why ToonUI has only core and react packages, and how that prevents server/client confusion."
 ---
 
-ToonUI is split by responsibility, not by marketing.
+ToonUI is split by runtime boundary.
 
-That is a GOOD thing.
-
-It keeps server concerns, rendering concerns, and tooling concerns from bleeding into each other.
-
-## Package map
-
-| Package | Responsibility | Best for |
+| Package | Boundary | Responsibility |
 |---|---|---|
-| `@toon-ui/core` | Protocol, catalog, parser, validation, prompts, events, messages | Server-side contract |
-| `@toon-ui/toon-ui` | Main client package with default adapter | Fastest integration path |
-| `@toon-ui/react` | Explicit React runtime and adapter APIs | Design-system ownership |
-| `@toon-ui/prompts` | Prompt helpers only | Custom prompt composition |
-| `@toon-ui/cli` | Validation and AST tooling | CI, fixtures, debugging |
+| `@toon-ui/core` | server-safe | catalog, prompt, parser, validator, events, messages |
+| `@toon-ui/react` | React client | runtime, renderer, adapter, hooks |
 
-## Default architecture
+There is no umbrella package because umbrella packages make it too easy to import client code from the server.
 
-Most teams should start here:
+## Correct imports
 
-```txt
-server -> @toon-ui/core
-client -> @toon-ui/toon-ui
+Server:
+
+```ts
+import { createToonProtocol } from '@toon-ui/core';
 ```
 
-Why:
+Client:
 
-- minimal setup
-- clean defaults
-- fast path to a real product integration
-
-## Explicit architecture
-
-Use this when the frontend team needs full rendering control:
-
-```txt
-server -> @toon-ui/core
-client -> @toon-ui/react
-adapter -> your components
+```tsx
+'use client';
+import { ToonMessage, createToonReactRuntime } from '@toon-ui/react';
 ```
 
-Why:
+## Why this matters
 
-- explicit adapter ownership
-- tighter design-system integration
-- stricter coverage guarantees
+The prompt is mostly server work. React rendering is client work.
 
-## How to choose
+Mixing both behind one package makes the API look convenient, but it teaches the wrong architecture.
 
-### Choose `@toon-ui/toon-ui` if you want speed
+## Active catalog flow
 
-Best when:
-
-- you want a working system quickly
-- the default adapter is acceptable
-- you may customize only a few components later
-
-### Choose `@toon-ui/react` if you want control
-
-Best when:
-
-- your team already owns a component system
-- rendering standards matter a lot
-- missing coverage should be explicit
-
-## Architecture principle
-
-The package split reflects the actual system design:
-
-- the server teaches the language
-- the client renders the language
-- the host app owns behavior
-- tooling validates the language
-
-That is the real architecture.
+```txt
+configured standard components
+  -> @toon-ui/core creates toon.prompt
+  -> model emits only that subset
+  -> @toon-ui/react renders registered components
+  -> interactions return as structured messages
+```
 
 ## Next step
 
-1. [@toon-ui/core](/docs/packages/core)
-2. [@toon-ui/toon-ui](/docs/packages/toon-ui)
-3. [@toon-ui/react](/docs/packages/react)
+Read [Boundaries](/docs/architecture/boundaries).

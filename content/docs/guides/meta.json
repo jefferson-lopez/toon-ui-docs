@@ -1,1 +1,13 @@
-{ "title": "Build and Integrate", "pages": ["build-a-real-flow", "custom-host-loop", "custom-adapter", "ui-patterns", "debug-invalid-toonui", "vercel-ai-sdk"] }
+{
+  "title": "Guides",
+  "pages": [
+    "vercel-ai-sdk",
+    "vercel-ai-sdk-ai-elements",
+    "configure-catalog",
+    "build-a-real-flow",
+    "custom-adapter",
+    "custom-host-loop",
+    "ui-patterns",
+    "debug-invalid-toonui"
+  ]
+}

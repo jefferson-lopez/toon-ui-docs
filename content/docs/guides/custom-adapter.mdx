@@ -1,384 +1,59 @@
 ---
-title: "Custom Adapter"
-description: "Step-by-step guide for replacing ToonUI visuals with your own React components, design system, or shadcn-style primitives without breaking behavior."
+title: "Custom React Components"
+description: "Register your design-system components as the active ToonUI React catalog."
 ---
 
-This guide explains the MOST important rendering truth in ToonUI:
+ToonUI does not render arbitrary generated React. It renders standard ToonUI nodes with components you register.
 
-> ToonUI gives you the semantic UI protocol.  
-> You still own the visual implementation.
-
-That means you can:
-
-- keep the default ToonUI UI
-- replace one or two pieces
-- bring your own full design system
-- use your own React primitives
-- use a component system such as shadcn/ui
-
-## Quick answer
-
-If you want to customize ToonUI safely, the normal pattern is:
-
-1. choose an adapter level
-2. replace one component at a time
-3. keep ToonUI wiring through `getToon*Props()` helpers
-4. move to `strict` only when your design system should own everything
-
-## The mental model
-
-ToonUI does NOT force a visual design system.
-
-It gives you:
-
-- semantic nodes such as `button`, `form`, `alert`, `table`
-- typed interaction behavior
-- helper props to preserve reply/submit/form wiring
-
-You choose how those nodes look.
-
-## Which package should you use?
-
-| If you want... | Use |
-|---|---|
-| fastest path + optional overrides | `@toon-ui/toon-ui` |
-| explicit React ownership from the start | `@toon-ui/react` |
-
-Both allow custom components.
-
-The difference is how explicit you want the rendering contract to be.
-
-## Adapter levels
-
-### `default`
-
-Use this when:
-
-- you want ToonUI defaults plus your overrides
-- you only need to replace a few slots
-- you want the easiest path
-
-This is the BEST starting point for most teams.
-
-### `minimal`
-
-Use this when:
-
-- you want to register only what you provide
-- you do not want built-in defaults
-- you are building from scratch
-
-This is more advanced and easier to break if you are not deliberate.
-
-### `strict`
-
-Use this when:
-
-- your design system must own the entire rendering surface
-- incomplete component coverage should fail immediately
-- you want hard guarantees before runtime
-
-Strict mode throws if required adapter keys are missing.
-
-## The adapter keys you can replace
-
-The current React adapter surface covers:
-
-- `text`
-- `card`
-- `form`
-- `field`
-- `button`
-- `confirm`
-- `list`
-- `item`
-- `badge`
-- `alert`
-- `table`
-
-Those are the slots the adapter expects.
-
-## The golden rule
-
-When replacing components, keep ToonUI behavior wiring through the helper props.
-
-For example:
-
-- `getToonButtonProps()`
-- `getToonInputProps()`
-- `getToonTextareaProps()`
-- `getToonCheckboxProps()`
-
-If you skip those helpers, you may break:
-
-- reply actions
-- submit actions
-- normalized field values
-- disabled handling
-- form submission behavior
-
-## Path A — Override one component with `@toon-ui/react`
-
-This is the clearest path when you want explicit React ownership.
+## Direct runtime setup
 
 ```tsx
-import {
-  createToonReactAdapter,
-  createToonReactRuntime,
-  getToonButtonProps,
-  type ToonButtonComponentProps,
-} from '@toon-ui/react';
+import { createToonReactRuntime } from '@toon-ui/react';
 
-function MyButton(props: ToonButtonComponentProps) {
-  return (
-    <button
-      className="rounded-md border px-3 py-2"
-      {...getToonButtonProps(props)}
-    >
-      {props.node.label}
-    </button>
-  );
-}
-
-const adapter = createToonReactAdapter({
-  level: 'default',
+const toon = createToonReactRuntime({
   components: {
-    button: MyButton,
+    text: TextComponent,
+    card: CardComponent,
+    form: FormComponent,
+    field: FieldComponent,
+    button: ButtonComponent,
   },
 });
-
-const runtime = createToonReactRuntime({ adapter });
 ```
 
-### What this gives you
+## Adapter setup
 
-- your button visuals
-- ToonUI reply/submit behavior preserved
-- default ToonUI rendering for everything else
-
-## Path B — Override one component with `@toon-ui/toon-ui`
-
-Use this when you want to stay on the convenience package.
+Use an adapter when you want metadata and coverage checks.
 
 ```tsx
-import {
-  createToonAdapter,
-  createToonClient,
-  getToonButtonProps,
-  type ToonButtonComponentProps,
-} from '@toon-ui/toon-ui';
+import { createToonReactAdapter, createToonReactRuntime } from '@toon-ui/react';
 
-function MyButton(props: ToonButtonComponentProps) {
-  return (
-    <button
-      className="rounded-md border px-3 py-2"
-      {...getToonButtonProps(props)}
-    >
-      {props.node.label}
-    </button>
-  );
-}
-
-const adapter = createToonAdapter({
-  level: 'default',
-  components: {
-    button: MyButton,
-  },
-});
-
-const toon = createToonClient({ adapter });
-```
-
-### When this is better
-
-Use this if:
-
-- you want the fastest client setup
-- you only want selective overrides
-- you do not need to start from the lower-level React runtime
-
-## Example — Custom field component
-
-Replacing fields is more delicate than replacing buttons because fields carry value normalization.
-
-```tsx
-import {
-  getToonInputProps,
-  type ToonFieldComponentProps,
-} from '@toon-ui/react';
-
-function MyField(props: ToonFieldComponentProps) {
-  return (
-    <label className="grid gap-2">
-      <span>{props.node.label}</span>
-      <input
-        className="rounded-md border px-3 py-2"
-        {...getToonInputProps(props)}
-      />
-    </label>
-  );
-}
-```
-
-### Why this matters
-
-`getToonInputProps()` preserves:
-
-- `name`
-- `required`
-- `disabled`
-- `placeholder`
-- normalized `value`
-- `onChange`
-- input type handling
-
-## Example — Bring your own design system
-
-The pattern is the same whether you use:
-
-- your own components
-- an internal design system
-- shadcn-style primitives
-
-The key idea is NOT the library name.
-
-The key idea is:
-
-1. render your component
-2. pass the correct ToonUI helper props
-3. use the semantic data from `props.node`
-
-Example mental model:
-
-```tsx
-function MyDesignSystemButton(props: ToonButtonComponentProps) {
-  return (
-    <YourButtonComponent {...getToonButtonProps(props)}>
-      {props.node.label}
-    </YourButtonComponent>
-  );
-}
-```
-
-That is the contract.
-
-## How to know what is still missing
-
-Every adapter exposes metadata:
-
-```ts
-console.log(adapter.meta.level);
-console.log(adapter.meta.includesDefaults);
-console.log(adapter.meta.isComplete);
-console.log(adapter.meta.providedKeys);
-console.log(adapter.meta.missingKeys);
-```
-
-Use this to answer:
-
-- what did we replace?
-- what still comes from ToonUI defaults?
-- are we ready for `strict`?
-
-## When to move from `default` to `strict`
-
-Move to `strict` when:
-
-- your team already replaced most rendering slots
-- you want to ban silent fallback to ToonUI defaults
-- visual consistency matters more than convenience
-
-Example:
-
-```tsx
 const adapter = createToonReactAdapter({
   level: 'strict',
   components: {
-    text: MyText,
-    card: MyCard,
-    form: MyForm,
-    field: MyField,
-    button: MyButton,
-    confirm: MyConfirm,
-    list: MyList,
-    item: MyItem,
-    badge: MyBadge,
-    alert: MyAlert,
-    table: MyTable,
+    text: TextComponent,
+    card: CardComponent,
+    form: FormComponent,
+    field: FieldComponent,
+    button: ButtonComponent,
   },
 });
+
+const toon = createToonReactRuntime({ adapter });
 ```
 
-If anything is missing, the adapter throws.
-
-That is GOOD when your team wants full intentional ownership.
-
-## Common mistakes
-
-### Mistake 1 — Replacing visuals without helper props
-
-Bad:
+## Component props
 
 ```tsx
-function MyButton(props: ToonButtonComponentProps) {
-  return <button>{props.node.label}</button>;
+import { getToonButtonProps, type ToonButtonComponentProps } from '@toon-ui/react';
+
+function ButtonComponent(props: ToonButtonComponentProps) {
+  return (
+    <button {...getToonButtonProps(props)}>
+      {props.node.label}
+    </button>
+  );
 }
 ```
 
-Why this is wrong:
-
-- reply and submit behavior are missing
-
-### Mistake 2 — Choosing `strict` too early
-
-Bad mindset:
-
-- “we want full control” before replacing enough slots
-
-Why this is wrong:
-
-- you create friction before understanding the adapter surface
-
-### Mistake 3 — Thinking ToonUI owns your design system
-
-Wrong mindset:
-
-- “ToonUI gives me the final UI”
-
-Correct mindset:
-
-- “ToonUI gives me semantic UI intent”
-- “my app decides the visuals”
-
-## Recommended adoption path
-
-For most teams:
-
-1. start with `@toon-ui/toon-ui`
-2. override `button`
-3. override `field`
-4. override `card` / `alert` / `form`
-5. inspect `adapter.meta`
-6. move to `@toon-ui/react` or `strict` only when needed
-
-## Decision checklist
-
-Use `default` when:
-
-- you want speed
-- you are replacing a few components
-
-Use `minimal` when:
-
-- you want to register only what you provide
-
-Use `strict` when:
-
-- your design system must own every slot
-
-## Read next
-
-1. [@toon-ui/react](/docs/packages/react)
-2. [@toon-ui/toon-ui](/docs/packages/toon-ui)
-3. [React Runtime and Hooks](/docs/reference/react-runtime-and-hooks)
-4. [Configuration](/docs/getting-started/configuration)
+Use helpers like `getToonButtonProps`, `getToonInputProps`, and `getToonCheckboxProps` so you do not reimplement interaction wiring.

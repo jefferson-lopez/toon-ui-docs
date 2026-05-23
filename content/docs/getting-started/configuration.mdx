@@ -1,401 +1,133 @@
 ---
 title: "Configuration"
-description: "Detailed setup guide for the server prompt, client runtime, adapter configuration, and the main public APIs ToonUI exposes."
+description: "Configure ToonUI correctly: one active catalog, one server prompt, one React runtime."
 ---
 
-This page is the missing bridge between “I installed it” and “I understand how to configure it correctly”.
+A correct ToonUI setup has three pieces:
 
-## The core configuration idea
+1. active standard component catalog
+2. server protocol generated from that catalog
+3. client runtime registered with matching React components
 
-A correct ToonUI setup has four parts:
+## Active catalog
 
-1. **server protocol**
-2. **model prompt composition**
-3. **client runtime**
-4. **interaction reinjection**
+The catalog is not free-form. Developers select from standard parseable ToonUI components.
 
-If one of those is vague, the integration becomes fragile.
+```ts
+const components = ['text', 'card', 'form', 'field', 'button', 'table'] as const;
+```
 
-## 1. Configure the server protocol
+Do not write domain components like `delete_product` or `invoiceSummary`. Business intent belongs in button replies, form submits, tools, and application code.
 
-The canonical server entrypoint is `createToonProtocol()`.
+Each key you add has two consequences:
+
+1. the server prompt will teach the model that component
+2. the React runtime must have a registered component for that key
+
+So do not enable `chart`, `dialog`, `sheet`, or `table` unless your app can actually render them.
+
+For the full official matrix, including required child components, read [Catalog](/docs/language/catalog).
+
+## Server configuration
 
 ```ts
 import { createToonProtocol } from '@toon-ui/core';
 
-const toon = createToonProtocol();
+const toon = createToonProtocol({ components });
 ```
 
-This exposes:
+`createToonProtocol` returns:
 
-- `toon.prompt`
-- `toon.rules`
-- `toon.catalog`
-- `toon.events`
-- `toon.messages`
-
-### What each one is for
-
-| API | Purpose |
+| Property | Purpose |
 |---|---|
-| `toon.prompt` | canonical instruction set for the model |
-| `toon.rules` | structured language rules for custom prompt composition |
-| `toon.catalog` | official catalog of components, variants, and examples |
-| `toon.events` | factories for reply and submit payloads |
-| `toon.messages` | converters from payloads to model/UI message shapes |
+| `prompt` | system prompt fragment generated from the active catalog |
+| `rules` | structured rules for components and variants |
+| `catalog` | active catalog used for prompt generation and validation |
+| `events` | helpers for reply/submit payloads |
+| `messages` | converters for reinjecting UI interactions into chat/model state |
 
-## 2. Configure the model prompt correctly
-
-The most common good setup is:
-
-```ts
-import { createToonProtocol } from '@toon-ui/core';
-
-const toon = createToonProtocol();
-
-const businessRules = [
-  'You are helping users manage products and sales.',
-  'Use ToonUI when structured UI reduces back-and-forth.',
-  'Do not invent database operations.',
-].join('\n');
-
-const toolDescription = [
-  'Available tools:',
-  '- searchProducts(query)',
-  '- createProduct(input)',
-  '- updateInventory(productId, quantity)',
-].join('\n');
-
-export const systemPrompt = [
-  toon.prompt,
-  '',
-  toolDescription,
-  '',
-  businessRules,
-].join('\n');
-```
-
-### Why this structure works
-
-- ToonUI defines the UI language
-- your app defines business behavior
-- tool descriptions define host capabilities
-
-That separation is CLEAN architecture, not convenience theater.
-
-## 3. Configure the client runtime
-
-You have two main client entrypoints.
-
-### Option A — `createToonClient()`
-
-Use this for the simplest public setup:
+## Client configuration
 
 ```tsx
-import { createToonClient } from '@toon-ui/toon-ui';
+import { createToonReactRuntime } from '@toon-ui/react';
 
-const toon = createToonClient();
+const toon = createToonReactRuntime({
+  components: {
+    text: TextComponent,
+    card: CardComponent,
+    form: FormComponent,
+    field: FieldComponent,
+    button: ButtonComponent,
+    table: TableComponent,
+  },
+});
 ```
 
-This gives you:
+`createToonReactRuntime` creates a runtime that includes:
 
-- default adapter
-- protocol APIs
-- parsing/validation helpers
-- rendering compatibility with `ToonMessage` and `ToonRenderer`
+- the active catalog derived from registered components
+- parser and validator helpers
+- message/event helpers from core
+- React layout and render context
 
-### Option B — `createToonReactRuntime()`
+## Adapter configuration
 
-Use this when your UI layer must be explicit:
+Use an adapter when you want coverage metadata or strict validation.
 
 ```tsx
 import { createToonReactAdapter, createToonReactRuntime } from '@toon-ui/react';
 
 const adapter = createToonReactAdapter({
-  level: 'default',
-});
-
-const toon = createToonReactRuntime({
-  adapter,
-});
-```
-
-## 4. Configure adapter behavior
-
-The adapter is where React ownership becomes explicit.
-
-### `minimal`
-
-```tsx
-const adapter = createToonReactAdapter({
-  level: 'minimal',
-  components: {
-    button: MyButton,
-  },
-});
-```
-
-Use it when you want to build your registry manually.
-
-### `default`
-
-```tsx
-const adapter = createToonReactAdapter({
-  level: 'default',
-  components: {
-    button: MyButton,
-  },
-});
-```
-
-Use it when you want built-in defaults plus selective overrides.
-
-### `strict`
-
-```tsx
-const adapter = createToonReactAdapter({
   level: 'strict',
   components: {
-    text: MyText,
-    card: MyCard,
-    form: MyForm,
-    field: MyField,
-    button: MyButton,
-    confirm: MyConfirm,
-    list: MyList,
-    item: MyItem,
-    badge: MyBadge,
-    alert: MyAlert,
-    table: MyTable,
-  },
-});
-```
-
-Use it when missing component coverage should fail immediately.
-
-## 5. Configure layout spacing
-
-The React runtime accepts layout options:
-
-```tsx
-const toon = createToonReactRuntime({
-  adapter,
-  layout: {
-    messageGap: 20,
-    blockGap: 16,
-    nodeGap: 10,
-  },
-});
-```
-
-Use this when you want to tune:
-
-- spacing between assistant message sections
-- spacing between blocks
-- spacing between nodes inside blocks
-
-## 6. Configure rendering
-
-### High-level rendering with `ToonMessage`
-
-```tsx
-<ToonMessage
-  content={assistantContent}
-  runtime={toon}
-  onReply={(payload) => append(toon.messages.toUIMessage(payload))}
-  onSubmit={(payload) => append(toon.messages.toUIMessage(payload))}
-/>
-```
-
-Use this when the assistant returns:
-
-- prose
-- markdown
-- fenced `toon-ui` blocks
-
-### Lower-level rendering with `ToonRenderer`
-
-Use `ToonRenderer` when you want finer control over where the structured block appears relative to the rest of the UI.
-
-## 7. Configure interaction reinjection
-
-This is one of the most important parts of the whole integration.
-
-### UI message reinjection
-
-```ts
-const next = toon.messages.toUIMessage(payload);
-append(next);
-```
-
-Use this when the interaction should be appended to a UI/chat state list.
-
-### Model message reinjection
-
-```ts
-const next = toon.messages.toModelMessage(payload);
-sendToModel(next);
-```
-
-Use this when the interaction becomes the next user message for the model loop.
-
-### Raw content conversion
-
-```ts
-const content = toon.messages.toContent(payload);
-```
-
-Use this when you only need the normalized interaction string.
-
-## 8. Configure custom components safely
-
-If you replace components, use the built-in helpers when possible.
-
-Example for buttons:
-
-```tsx
-import {
-  createToonAdapter,
-  createToonClient,
-  getToonButtonProps,
-  type ToonButtonComponentProps,
-} from '@toon-ui/toon-ui';
-
-function MyButton(props: ToonButtonComponentProps) {
-  return (
-    <button
-      className="rounded-md border px-3 py-2"
-      {...getToonButtonProps(props)}
-    >
-      {props.node.label}
-    </button>
-  );
-}
-
-const adapter = createToonAdapter({
-  level: 'default',
-  components: {
-    button: MyButton,
+    text: TextComponent,
+    card: CardComponent,
+    form: FormComponent,
+    field: FieldComponent,
+    button: ButtonComponent,
+    table: TableComponent,
   },
 });
 
-const toon = createToonClient({ adapter });
+const toon = createToonReactRuntime({ adapter });
 ```
 
-Why this matters:
+| Level | Meaning |
+|---|---|
+| `minimal` | only registered components are available |
+| `strict` | throws if required adapter keys are missing |
 
-- you keep ToonUI interaction wiring intact
-- you customize visuals without breaking semantics
+## Dependency validation
 
-## 9. Configure parsing and validation in stricter environments
+Some components require child components:
 
-If you want a more defensive setup:
+| Component | Requires |
+|---|---|
+| `form` | `field`, `button` |
+| `list` | `item` |
+| `tabs` | `tab` |
+| `accordion` | `section` |
+| `menu`, `command` | `action` |
+| `chart` | `series`, `point` |
+| `breadcrumb` | `crumb` |
 
-```ts
-const blocks = toon.extractBlocks(content);
+If you enable `form` without `field` and `button`, ToonUI throws early. That is intentional.
 
-for (const block of blocks) {
-  const ast = toon.parse(block.raw);
-  const result = toon.validate(ast);
+## Common catalog configurations
 
-  if (!result.ok) {
-    throw new Error(
-      `Invalid ToonUI: ${result.errors.map((error) => error.message).join(', ')}`
-    );
-  }
-}
-```
+These are examples, not presets. ToonUI does not export a default UI catalog.
 
-Use this in:
+| Goal | Components |
+|---|---|
+| Text-only answers | `text`, `heading`, `separator` |
+| Cards and actions | `text`, `heading`, `badge`, `card`, `button` |
+| Forms | `text`, `form`, `field`, `button` |
+| Search results | `text`, `list`, `item`, `badge`, `button`, `empty` |
+| Exact data | `text`, `table` |
+| Navigation | `breadcrumb`, `crumb`, `pagination`, `menu`, `command`, `action` |
+| Charts | `chart`, `series`, `point` |
+| Overlays | `text`, `dialog`, `sheet`, `popover`, `tooltip`, `button` |
 
-- tests
-- fixtures
-- strict server pipelines
-- debugging sessions
+## Next step
 
-## 10. What `@toon-ui/toon-ui` exposes
-
-The main public client package exposes:
-
-- `createToonClient()`
-- `createToonAdapter()`
-- `ToonMessage`
-- `ToonRenderer`
-- `extractToonMarkdown`
-- all public exports from `@toon-ui/core`
-- all public exports from `@toon-ui/react`
-
-That means it is both:
-
-- convenience layer
-- public umbrella entrypoint
-
-## 11. What `@toon-ui/react` exposes
-
-The React package exposes the explicit runtime layer:
-
-- `createToonReactAdapter()`
-- `createToonAdapter()`
-- `mergeToonComponentRegistry()`
-- `createToonReactRuntime()`
-- `assertToonReactAdapter()`
-- `ToonProvider`
-- `ToonMessage`
-- `ToonRenderer`
-- `extractToonMarkdown`
-- `getToonFieldId()`
-- `getToonButtonProps()`
-- `getToonInputProps()`
-- `getToonTextareaProps()`
-- `getToonCheckboxProps()`
-- `useToonUI()`
-- `useToonReply()`
-- `useToonSubmit()`
-- `useToonAction()`
-- `basicPreset()`
-
-## 12. What `@toon-ui/core` exposes
-
-The core package exposes the protocol and contract layer:
-
-- catalog exports
-- types exports
-- `parseToonUI()`
-- `ToonSyntaxError`
-- `validateToonUI()`
-- `extractToonBlocks()`
-- `createPrompt()`
-- `createComponentPrompt()`
-- `createSyntaxPrompt()`
-- `createFallbackPrompt()`
-- `createSafetyPrompt()`
-- `createExamplesPrompt()`
-- `createRules()`
-- `createToonProtocol()`
-- `createToonCoreRuntime()`
-
-## 13. Recommended production baseline
-
-If you want the default recommendation:
-
-- server: `createToonProtocol()`
-- client: `createToonClient()`
-- rendering: `ToonMessage`
-- reinjection: `toon.messages.toUIMessage()` for UI state
-- stricter loops: `toon.messages.toModelMessage()` for model continuation
-
-## 14. Final configuration checklist
-
-- [ ] `toon.prompt` is included in the system prompt
-- [ ] business rules stay outside ToonUI itself
-- [ ] the client runtime is created exactly once in the right place
-- [ ] interaction payloads are reinjected intentionally
-- [ ] adapter level is chosen deliberately, not by guess
-- [ ] parsing/validation strategy is defined for your environment
-
-## Read next
-
-1. [Mental Model](/docs/concepts/mental-model)
-2. [Boundaries](/docs/architecture/boundaries)
-3. [Protocol and Types](/docs/reference/protocol-and-types)
-4. [React Runtime and Hooks](/docs/reference/react-runtime-and-hooks)
+Read [Catalog](/docs/language/catalog), [Core package](/docs/packages/core), and [React package](/docs/packages/react).

@@ -63,7 +63,7 @@ separator vertical
 The general-purpose container.
 
 ```txt
-card "Customer found":
+card "Customer found" description="Premium account":
   text "Jefferson Lopez Mendoza"
   badge "Active" success
   button secondary "View history" reply="view-history"
@@ -74,6 +74,8 @@ Use `card` when:
 - one entity is the focus
 - you need contextual actions close to the data
 - the response should feel self-contained
+
+`card` can also take `description="..."` when the subtitle adds useful context.
 
 ### `list`
 
@@ -97,6 +99,8 @@ Use it when each row/entity needs:
 - status
 - actions
 
+`item` can also take `description="..."` for list-level secondary context.
+
 ### `table`
 
 Use `table` for precise comparisons and exact values.
@@ -118,7 +122,7 @@ Prefer `table` over `list` when:
 Use `empty` for zero-result states.
 
 ```txt
-empty "No customers found":
+empty "No customers found" description="No records matched the current filters":
   text "Try another search term."
   button secondary "Search again" reply="search-again"
 ```
@@ -168,7 +172,7 @@ Typical use:
 Use `form` when the user must provide structured input.
 
 ```txt
-form "Create product":
+form "Create product" description="Complete the required fields":
   field name text "Name" required
   field price number "Price" required
   button primary "Create product" submit
@@ -229,7 +233,7 @@ Buttons always need:
 Use `confirm` for user confirmation flows.
 
 ```txt
-confirm danger "Delete customer?":
+confirm danger "Delete customer?" trigger="Review deletion" description="This action cannot be undone":
   text "This action cannot be undone."
   button secondary "Cancel" reply="cancel"
   button danger "Delete" reply="delete-customer"
@@ -295,7 +299,7 @@ Use `dialog` for modal interactions.
 Use `sheet` for side-attached contextual UI.
 
 ```txt
-sheet "Filters" side="right":
+sheet "Filters" trigger="Open filters" side="right":
   text "Choose the filters to apply."
 ```
 
@@ -348,7 +352,7 @@ Every `action` must include `reply="..."` or `submit`.
 Use `command` when the interaction resembles a command palette or compact action launcher.
 
 ```txt
-command "Jump to":
+command "Jump to" trigger="Open command palette":
   action "Open reports" reply="open-reports"
   action "Create product" reply="start-create-product"
 ```
@@ -394,5 +398,5 @@ Choose:
 ## Read next
 
 1. [Catalog](/docs/language/catalog)
-2. [@toon-ui/toon-ui](/docs/packages/toon-ui)
+2. [@toon-ui/react](/docs/packages/react)
 3. [Events and Messages](/docs/reference/events-and-messages)

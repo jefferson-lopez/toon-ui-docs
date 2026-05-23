@@ -1,176 +1,100 @@
 ---
 title: "Overview"
-description: "The best first page for understanding ToonUI, what it does, and the recommended path for learning it without getting lost."
+description: "Understand ToonUI, the recommended React + AI SDK path, and the two-package API surface."
 ---
 
-## What ToonUI is
+ToonUI is a **structured UI protocol for AI chat products**.
 
-ToonUI is a **UI language plus rendering runtime** for end-user chat experiences inside AI products.
+It lets a model return normal markdown plus compact `toon-ui` blocks, while your app keeps ownership of rendering, tools, auth, persistence, and business logic.
 
-It gives the model a constrained way to describe interface intent inside chat or assistant flows, without turning the model into a frontend code generator.
+## Recommended path
 
-That means the model can express:
+Most teams should start with:
 
-- cards
-- forms
-- buttons
-- option lists
-- guided next steps
-- structured summaries
+```txt
+Server: @toon-ui/core
+Client: @toon-ui/react
+AI loop: Vercel AI SDK
+```
 
-But it does **not** mean the model owns the application.
+Vercel AI SDK is the recommended documentation path because it is common, well-supported, and ergonomic for React/Next.js chat products.
 
-If you came here thinking about tools like v0 or Lovable, pause there.
+It is not a hard requirement. If you use another SDK, keep the same ToonUI architecture and replace only the model/message loop.
 
-ToonUI is **not** for generating whole screens or frontend implementations from prompts.
+## The two packages
 
-It is for structured UI **inside a chat experience** your application already owns.
-
-## Why ToonUI exists
-
-Most chat-based AI products hit the same wall:
-
-plain text is too weak for good UX, but letting the model generate arbitrary UI code is too risky and too coupled.
-
-That creates a gap.
-
-ToonUI exists to fill that gap with a middle layer:
-
-> structured enough to render reliably, simple enough to teach in prompts, and constrained enough to keep product boundaries clean.
-
-## The mental model
-
-Think of ToonUI as a contract between the model and your application.
-
-| Layer | Responsibility | Owned by |
+| Package | Where it belongs | What it owns |
 |---|---|---|
-| Language | What the model is allowed to describe | `@toon-ui/core` |
-| Rendering | How that description becomes React UI | `@toon-ui/react` or `@toon-ui/toon-ui` |
-| Behavior | What happens after the user clicks or submits | Your app |
+| `@toon-ui/core` | Server or shared non-React code | Active catalog, prompt generation, parser, validator, events, messages |
+| `@toon-ui/react` | React client code | Runtime, renderer, adapter, hooks, component props |
 
-In one sentence:
+There is intentionally no umbrella package. Do not import React code on the server just to get protocol helpers.
 
-> the model describes semantic UI for the chat, and the app keeps ownership of rendering, logic, state, tools, and permissions.
+## The core idea
 
-## What ToonUI is NOT
+The model can only emit the standard ToonUI components your app configures.
 
-ToonUI is NOT:
+```ts
+import { createToonProtocol } from '@toon-ui/core';
+
+const toon = createToonProtocol({
+  components: ['text', 'card', 'form', 'field', 'button', 'table'],
+});
+```
+
+That active catalog drives:
+
+- `toon.prompt`
+- `toon.rules`
+- `toon.catalog`
+- validation against generated output
+
+On the client, register matching React components:
+
+```tsx
+'use client';
+
+import { createToonReactRuntime } from '@toon-ui/react';
+
+const toon = createToonReactRuntime({
+  components: {
+    text: TextComponent,
+    card: CardComponent,
+    form: FormComponent,
+    field: FieldComponent,
+    button: ButtonComponent,
+    table: TableComponent,
+  },
+});
+```
+
+If the AI emits a component outside the active catalog, ToonUI rejects it instead of silently rendering unsupported UI.
+
+## What ToonUI is not
+
+ToonUI is not:
 
 - an agent framework
 - a tool executor
 - a backend workflow engine
 - a v0-style frontend generator
+- an alternative to JSON renderers like json-render.dev
 - runtime React generation for production
 - a replacement for your design system
-- a way to move business logic into prompts
 
-This boundary matters.
+The model describes semantic UI. Your app decides what behavior happens next.
 
-The model paints the interface.
+## Learning path
 
-Your app keeps the keys.
-
-## Why use ToonUI?
-
-If you are comparing options, this is the question that matters most.
-
-Use ToonUI because it gives your AI product a better chat interface layer without breaking ownership boundaries.
-
-### Better than plain text when interaction matters
-
-Use ToonUI when the assistant should do more than explain inside the conversation.
-
-Examples:
-
-- compare options
-- ask the user to choose
-- present a short form
-- show next actions clearly
-- guide a decision without making the decision for the user
-
-### Safer than generated React at runtime
-
-If the model generates React for end-user chat responses, you now have code generation concerns mixed with product, security, and rendering concerns.
-
-ToonUI keeps the output at the **intent layer**.
-
-That makes it easier to:
-
-- validate
-- render predictably
-- keep design system ownership
-- preserve application boundaries
-
-### More teachable than raw JSON contracts
-
-Raw JSON can work, but in chat UX it often becomes too verbose and too low-level for prompt design.
-
-ToonUI is purpose-built for structured UI inside AI chat products, so it is easier to teach, inspect, and reason about.
-
-## Package overview
-
-| Package | What it does | Best for |
-|---|---|---|
-| `@toon-ui/core` | Protocol, catalog, parser, validation, prompts, events, messages | Server-side contract and language rules |
-| `@toon-ui/react` | Explicit React runtime and adapter APIs | Full rendering ownership |
-| `@toon-ui/toon-ui` | Main public client package with default adapter | Fastest path to integration |
-| `@toon-ui/prompts` | Prompt helpers only | Custom prompt composition |
-| `@toon-ui/cli` | CLI validation and AST inspection | CI, debugging, and tooling |
-
-## Recommended learning path
-
-If you are new, do NOT branch yet.
-
-Use this order:
+Read in this order:
 
 1. [Start Here](/docs/getting-started/start-here)
-2. [Choose Your Integration Path](/docs/getting-started/choose-your-integration-path)
-3. [Installation](/docs/getting-started/installation)
-4. [Quickstart](/docs/getting-started/quickstart)
-5. [Configuration](/docs/getting-started/configuration)
-6. [Mental Model](/docs/concepts/mental-model)
-7. [Syntax](/docs/language/syntax)
-8. [Node Reference](/docs/language/node-reference)
-
-This gives you a beginning, a middle, and an end.
-
-Read the deep reference pages only AFTER this path.
-
-## What to read later
-
-Once the core path is clear, then go deeper:
-
-- [AI Authoring Rules](/docs/language/ai-authoring-rules)
-- [Complete Syntax Reference](/docs/language/complete-syntax-reference)
-- [Build a Real ToonUI Flow](/docs/guides/build-a-real-flow)
-- [Custom Host Loop](/docs/guides/custom-host-loop)
-- [UI Patterns](/docs/guides/ui-patterns)
-- [Debug Invalid ToonUI](/docs/guides/debug-invalid-toonui)
-- [@toon-ui/core](/docs/packages/core)
-- [@toon-ui/toon-ui](/docs/packages/toon-ui)
-- [Prompt API](/docs/reference/prompt-api)
-- [Full Generated Prompt](/docs/reference/full-generated-prompt)
-
-## Fastest working path
-
-1. Create a protocol on the server with `createToonProtocol()`.
-2. Inject `toon.prompt` into your system prompt.
-3. Create a client runtime with `createToonClient()` or `createToonReactRuntime()`.
-4. Render assistant output with `ToonMessage` or `ToonRenderer`.
-5. Reinject interactions with `toon.messages.toUIMessage(payload)` or `toon.messages.toModelMessage(payload)`.
-
-This does NOT force you to use Vercel AI SDK.
-That is only one possible host-loop integration.
-
-## What success looks like
-
-After the quickstart, you should have:
-
-- a model that can emit ToonUI blocks
-- a client that can render them
-- typed reply and submit payloads
-- a host app that still owns behavior
-- a cleaner AI user experience than plain text alone
+2. [Installation](/docs/getting-started/installation)
+3. [Quickstart](/docs/getting-started/quickstart)
+4. [Configuration](/docs/getting-started/configuration)
+5. [Vercel AI SDK guide](/docs/guides/vercel-ai-sdk)
+6. [Core package](/docs/packages/core)
+7. [React package](/docs/packages/react)
 
 ## Next step
 

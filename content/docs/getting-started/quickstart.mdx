@@ -1,30 +1,37 @@
 ---
 title: "Quickstart"
-description: "The fastest path from ToonUI install to a working AI-native UI flow."
+description: "Build the recommended ToonUI flow with React and AI SDK."
 ---
 
-This is the shortest happy path:
+This page builds the happy path:
 
-1. create the protocol on the server
-2. inject the ToonUI prompt into the model
-3. render the assistant output on the client
-4. turn clicks and submits into structured app input
+1. configure the active ToonUI catalog
+2. generate the model prompt on the server
+3. stream model output with AI SDK
+4. render markdown plus ToonUI in React
+5. send reply/submit interactions back to the chat loop
 
-## What you are building
+## 1. Share the component keys
 
-After this page, you should have:
+Create a small shared file for the standard ToonUI components your app supports.
 
-- a model that can emit `toon-ui` blocks
-- a client that can render them
-- typed interactions that return to your chat or app loop
-- a cleaner UX than plain text alone
+```ts title="lib/toon-components.ts"
+export const toonComponentKeys = ['text', 'card', 'form', 'field', 'button', 'table'] as const;
+```
 
-## Server: teach the model the language
+Do not invent component names here. These must be standard components supported by the ToonUI parser.
 
-```ts
+## 2. Server: create the protocol
+
+```ts title="app/api/chat/route.ts"
+import { openai } from '@ai-sdk/openai';
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 import { createToonProtocol } from '@toon-ui/core';
+import { toonComponentKeys } from '@/lib/toon-components';
 
-const toon = createToonProtocol();
+const toon = createToonProtocol({
+  components: toonComponentKeys,
+});
 
 const system = [
   toon.prompt,
@@ -33,24 +40,38 @@ const system = [
   'Available tools:',
   '- searchProducts(query)',
 ].join('\n\n');
+
+export async function POST(request: Request) {
+  const { messages } = (await request.json()) as { messages: UIMessage[] };
+
+  const result = streamText({
+    model: openai('gpt-4o-mini'),
+    system,
+    messages: await convertToModelMessages(messages),
+  });
+
+  return result.toUIMessageStreamResponse();
+}
 ```
 
-This does ONE important thing:
+## 3. Client: create the React runtime
 
-it teaches the model how to describe UI without giving it control of your application.
-
-Do NOT replace `toon.prompt` with ad-hoc prose rules unless you already understand the prompt architecture and tradeoffs.
-
-If you want to inspect the full prompt later, see [Full Generated Prompt](/docs/reference/full-generated-prompt).
-
-## Client: render assistant output
-
-```tsx
+```tsx title="components/assistant-message.tsx"
 'use client';
 
-import { ToonMessage, createToonClient } from '@toon-ui/toon-ui';
+import { ToonMessage, createToonReactRuntime } from '@toon-ui/react';
+import { MessageResponse } from '@/components/ai-elements/message';
 
-const toon = createToonClient();
+const toon = createToonReactRuntime({
+  components: {
+    text: TextComponent,
+    card: CardComponent,
+    form: FormComponent,
+    field: FieldComponent,
+    button: ButtonComponent,
+    table: TableComponent,
+  },
+});
 
 export function AssistantMessage({
   content,
@@ -63,6 +84,8 @@ export function AssistantMessage({
     <ToonMessage
       content={content}
       runtime={toon}
+      renderMarkdown={(markdown) => <MessageResponse>{markdown}</MessageResponse>}
+      renderError={(error) => <MyError details={error.details} />}
       onReply={(payload) => append(toon.messages.toUIMessage(payload))}
       onSubmit={(payload) => append(toon.messages.toUIMessage(payload))}
     />
@@ -70,111 +93,24 @@ export function AssistantMessage({
 }
 ```
 
-This renders mixed assistant output:
+## 4. What the model can emit
 
-- normal markdown
-- fenced `toon-ui` blocks
-- reply and submit interactions
+Because the server catalog only enabled `text`, `card`, `form`, `field`, `button`, and `table`, the prompt teaches only that subset.
 
-## Example model output
+Example valid output:
 
 ````md
-I found two strong options for your team.
+Here are the best matches.
 
-```toon-ui
-card "Recommended plans":
-  text "Choose the plan that best fits your current growth stage."
-  button secondary "Compare plans" reply="compare:plans"
-  button primary "Talk to sales" reply="sales:contact"
+```txt
+card "Recommended product":
+  text "Coca-Cola 400ml has strong availability."
+  button primary "View details" reply="view product details"
 ```
 ````
 
-## What happens next
+If the model emits a component outside the active catalog, validation rejects it instead of letting unsupported UI render silently.
 
-1. the model emits a ToonUI block
-2. `ToonMessage` renders it
-3. the user clicks a button or submits a form
-4. ToonUI creates a typed payload
-5. your app decides what to do with that payload
+## 5. Next step
 
-That last step is the boundary that matters.
-
-## Reinject interactions into your app loop
-
-Most apps use one of these two reinjection paths:
-
-| API | Use it when |
-|---|---|
-| `toon.messages.toUIMessage(payload)` | Your UI stores chat/message objects |
-| `toon.messages.toModelMessage(payload)` | The next step goes back to the LLM loop |
-
-Example:
-
-```ts
-onReply={(payload) => {
-  const next = toon.messages.toModelMessage(payload);
-  sendToModel(next);
-}}
-```
-
-## Validate before trusting output
-
-If your app needs stricter guarantees, validate the generated block before rendering or persisting it.
-
-```ts
-const blocks = toon.extractBlocks(content);
-
-for (const block of blocks) {
-  const ast = toon.parse(block.raw);
-  const result = toon.validate(ast);
-
-  if (!result.ok) {
-    console.error(result.errors);
-  }
-}
-```
-
-Use this for:
-
-- tests
-- fixtures
-- server-side checks
-- debugging generation quality
-
-## When to switch to `@toon-ui/react`
-
-Stay on `@toon-ui/toon-ui` if you want the fastest path.
-
-Move to `@toon-ui/react` when you need:
-
-- explicit adapter ownership
-- custom components
-- stricter design-system control
-
-## Success checklist
-
-- [ ] `toon.prompt` is in the system prompt
-- [ ] `createToonClient()` is running on the client
-- [ ] assistant content renders through `ToonMessage`
-- [ ] reply actions produce payloads
-- [ ] submit actions produce payloads
-- [ ] your app handles the next step after interaction
-
-## What NOT to do
-
-Do NOT put business logic inside ToonUI blocks.
-
-Wrong mindset:
-
-- "the model executes the workflow"
-
-Correct mindset:
-
-- "the model describes the interaction surface"
-- "the host app owns behavior"
-
-## Next step
-
-1. [Configuration](/docs/getting-started/configuration)
-2. [Mental Model](/docs/concepts/mental-model)
-3. [Syntax](/docs/language/syntax)
+Read the full [Vercel AI SDK guide](/docs/guides/vercel-ai-sdk).

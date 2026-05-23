@@ -1,58 +1,86 @@
 ---
 title: "Syntax"
-description: "Grammar examples for the most important ToonUI blocks."
+description: "Canonical ToonUI syntax examples for every official catalog component."
 ---
+
+This page shows the practical syntax for the official ToonUI language.
+
+If you need every edge case and parent/child rule, read [Complete Syntax Reference](/docs/language/complete-syntax-reference).
 
 ## General rules
 
-- ToonUI is written inside fenced ```` ```toon-ui ```` blocks
-- Nested blocks use indentation
-- Most containers end with `:`
-- Actions are explicit: `reply="..."` or `submit`
-- Some parents require structural child nodes like `crumb`, `action`, `tab`, `section`, `series`, and `point`
-- The syntax is compact on purpose so models can emit it reliably
-- Output must stay inside normal markdown plus optional `toon-ui` fenced blocks only
-- The model must not emit React, HTML, CSS, JavaScript, or component JSON
-- The model must use official components only and must not invent props
+- ToonUI is written inside fenced `toon-ui` blocks.
+- Nested blocks use indentation.
+- Most containers end with `:`.
+- Actions are explicit: `reply="..."` or `submit`.
+- Use official components only.
+- Do not invent props, React components, HTML, CSS, JavaScript, or component JSON.
+- Square brackets in docs mean optional grammar notation. Do not output literal `[` or `]`.
 
-## Form example
-
-```txt
-form "Create product":
-  field name text "Name" required
-  field price number "Price" required
-  button primary "Create product" submit
-```
-
-## List example
-
-```txt
-list "Products":
-  item "Toon Mug":
-    text "Ceramic mug"
-    badge "In stock" success
-    button secondary "Open" reply="open:toon-mug"
-```
-
-## Card example
-
-```txt
+```md
+```toon-ui
 card "Customer found":
+  text "Jefferson Lopez Mendoza"
+  button secondary "View history" reply="view-customer-history"
+```
+```
+
+## Content
+
+### `text`
+
+```txt
+text "Visible text"
+```
+
+### `heading`
+
+```txt
+heading 2 "Customer details"
+```
+
+### `separator`
+
+```txt
+separator
+separator horizontal
+separator vertical
+```
+
+### `badge`
+
+```txt
+badge "Active" success
+badge "Needs review" warning
+badge "Blocked" danger
+badge "Draft" neutral
+badge "Info" info
+```
+
+## Structure
+
+### `card`
+
+```txt
+card "Customer found" description="Premium account":
   text "Jefferson Lopez Mendoza"
   badge "Active" success
   button secondary "View history" reply="view-customer-history"
 ```
 
-## Confirm example
+### `list` and `item`
 
 ```txt
-confirm danger "Delete customer?":
-  text "This action cannot be undone."
-  button secondary "Cancel" reply="cancel"
-  button danger "Yes, delete" reply="delete-customer"
+list "Products":
+  item "Toon Mug" description="SKU TM-001":
+    text "Ceramic mug"
+    badge "In stock" success
+    button secondary "Open" reply="open:toon-mug"
 ```
 
-## Table example
+A `list` can contain only `item` children.
+
+### `table`
 
 ```txt
 table "Sales":
@@ -61,56 +89,281 @@ table "Sales":
   row: "May 15", "S-002", "$48.00", "Pending"
 ```
 
-## Navigation examples
+Always quote cells, especially when values contain commas.
+
+### `empty`
+
+```txt
+empty "No customers found" description="No records matched the current filters":
+  text "Try another search term."
+  button secondary "Create customer" reply="create-customer"
+```
+
+### `tabs` and `tab`
+
+```txt
+tabs "Customer profile":
+  tab "Summary":
+    text "Customer is active."
+  tab "History":
+    text "Last order was yesterday."
+```
+
+`tab` is structural. Use it only inside `tabs`.
+
+### `accordion` and `section`
+
+```txt
+accordion "Advanced settings":
+  section "Inventory":
+    text "Sync runs every 15 minutes."
+  section "Billing":
+    text "Invoices close on the last day of the month."
+```
+
+`section` is structural. Use it only inside `accordion`.
+
+## Capture
+
+### `form`, `field`, and `button submit`
+
+```txt
+form "Create product" description="Complete the required fields":
+  field name text "Name" placeholder="Premium chocolate" required
+  field price number "Price" placeholder="12.99" required
+  field category select "Category" options="Beverages|Snacks|Home" required
+  button primary "Create product" submit
+```
+
+A `form` must include at least one `field` and one submit `button`.
+
+### Field types
+
+```txt
+field email email "Email" placeholder="name@company.com" required
+field password password "Password" required
+field date date "Delivery date"
+field time time "Delivery time"
+field notes textarea "Notes" placeholder="Add context"
+field category select "Category" options="Beverages|Snacks|Home"
+field priority radio "Priority" options="Low|Medium|High"
+field active checkbox "Active"
+field enabled switch "Enabled" value="true"
+field product combobox "Product" options="Candy|Chocolate|Coffee"
+field code otp "Verification code"
+field score slider "Score" min=0 max=10 step=1 value="7"
+field tags multiselect "Tags" options="Popular|Fragile|Imported"
+```
+
+Rules:
+
+- `select`, `radio`, and `multiselect` require `options="A|B|C"`.
+- `slider` requires `min` and `max`.
+- default values use quoted `value="..."`.
+
+### `button reply`
+
+```txt
+button primary "Create product" reply="start-create-product"
+button secondary "Cancel" reply="cancel"
+button danger "Delete" reply="delete-product"
+button outline "View details" reply="view-details"
+button ghost "Skip" reply="skip"
+```
+
+Every button needs a variant, label, and either `reply="..."` or `submit`.
+
+### `confirm`
+
+```txt
+confirm warning "Delete customer?" trigger="Review deletion" description="This action cannot be undone":
+  text "Are you sure you want to delete this customer?"
+  button secondary "Cancel" reply="cancel"
+  button danger "Yes, delete" reply="delete-customer"
+```
+
+Use:
+
+- `danger` for destructive actions
+- `warning` for risky actions
+- `neutral` for normal confirmations
+- `trigger="..."` when the visual implementation needs an opener label, such as a shadcn/ui `AlertDialogTrigger`
+
+## Feedback
+
+### `alert`
+
+```txt
+alert warning "Inventory mismatch":
+  text "The counted stock does not match the expected total."
+```
+
+### `progress`
+
+```txt
+progress "Uploading files" value=2 max=5
+```
+
+### `loading`
+
+```txt
+loading "Searching products..."
+```
+
+### `toast`
+
+```txt
+toast success "Customer created successfully."
+toast danger "Could not save customer."
+```
+
+## Overlay
+
+Overlay nodes can include `trigger="..."`. The trigger is a label for your React host; your app still controls open/close behavior.
+
+### `dialog`
+
+```txt
+dialog "Customer details" trigger="Open details":
+  text "This is modal content."
+  button secondary "Close" reply="close-details"
+```
+
+### `sheet`
+
+```txt
+sheet "Filters" trigger="Open filters" side="right":
+  form "Filter products":
+    field search text "Search" placeholder="Product name"
+    field status select "Status" options="Active|Inactive|Draft"
+    button primary "Apply filters" submit
+```
+
+`side` can be `left`, `right`, `top`, or `bottom`.
+
+### `popover`
+
+```txt
+popover "More details" trigger="Show details":
+  text "Average order value: $58"
+```
+
+### `tooltip`
+
+```txt
+tooltip "More context about this metric" trigger="What does this mean?"
+```
+
+## Navigation
+
+### `breadcrumb` and `crumb`
 
 ```txt
 breadcrumb:
+  crumb "Home" reply="go:home"
   crumb "Customers" reply="go:customers"
   crumb "Jefferson Lopez"
 ```
+
+`crumb` is structural. Use it only inside `breadcrumb`.
+
+### `pagination`
+
+```txt
+pagination page=2 totalPages=7
+```
+
+### `menu` and `action`
 
 ```txt
 menu "Quick actions":
   action "Create customer" reply="create-customer"
   action "Start sale" reply="start-sale"
+  action "Save" submit variant="primary"
 ```
 
-## Analytics example
+`action` is structural. Use it only inside `menu` or `command`.
+
+### `command` and `action`
 
 ```txt
-chart bar "Weekly sales":
+command "Jump to" trigger="Open command palette":
+  action "Open reports" reply="open-reports"
+  action "Create product" reply="start-create-product"
+```
+
+`command` can include `trigger="..."` for the launcher label. Your app decides whether this is inline or a global command palette.
+
+## Analytics
+
+### `chart`, `series`, and `point`
+
+```txt
+chart bar "Weekly sales" x="Day" y="Revenue":
   series "Store A":
-    point "Mon" 24
-    point "Tue" 31
+    point "Mon" 1200
+    point "Tue" 980
+  series "Store B":
+    point "Mon" 900
+    point "Tue" 1100
 ```
 
-## Field examples
+Chart types:
 
-```txt
-field email email "Email" placeholder="name@company.com" required
-field category select "Category" options="Beverages|Snacks|Home"
-field tags multiselect "Tags" options="Popular|Fragile|Imported"
-field active switch "Active" value="true"
-field score slider "Score" min=0 max=10 step=1 value="7"
-```
+- `bar`
+- `line`
+- `area`
+- `pie`
 
-## Syntax design principles
+`series` is structural inside `chart`. `point` is structural inside `series`.
 
-The grammar is optimized for:
+## Dependency rules
 
-- readability by humans
-- predictable generation by models
-- reliable parsing
-- explicit interaction intent
+| If you enable | You must also enable |
+|---|---|
+| `form` | `field`, `button` |
+| `list` | `item` |
+| `tabs` | `tab` |
+| `accordion` | `section` |
+| `menu` | `action` |
+| `command` | `action` |
+| `chart` | `series`, `point` |
+| `breadcrumb` | `crumb` |
 
 ## Common mistakes
 
-- forgetting the trailing `:` on container nodes
-- creating a `form` without a submit button
-- using `select`, `radio`, or `multiselect` without `options`
-- using `action` without `reply="..."` or `submit`
-- putting raw HTML in `text`
-- treating ToonUI like arbitrary markdown instead of a constrained language
+```txt
+alert "Low stock"
+```
+
+Wrong. `alert` needs variant, title, `:`, and children.
+
+```txt
+button primary "Create product" "start-create-product"
+```
+
+Wrong. Use `reply="..."` or `submit`.
+
+```txt
+form "Customer":
+  field name text "Name"
+```
+
+Wrong. A form needs a submit button.
+
+```txt
+sheet "Filters":
+  input "Search"
+```
+
+Wrong. `input` is not a ToonUI component. Use `field` inside `form`.
+
+```txt
+tab "Summary":
+  text "Active"
+```
+
+Wrong at the top level. `tab` only works inside `tabs`.
 
 ## Read next
 

@@ -1,0 +1,951 @@
+---
+title: "Configure the Catalog"
+description: "How to configure the ToonUI catalog and implement each official component with shadcn/ui examples."
+---
+
+This page documents how to configure the ToonUI catalog in React by implementing each official component your app enables.
+
+The examples use **shadcn/ui** because that is the recommended copy-paste path for Next.js apps using AI Elements.
+
+But this is only an adapter layer. You can replace every shadcn/ui primitive with:
+
+- your internal design system
+- plain HTML/CSS
+- Tailwind-only components
+- Radix UI directly
+- any other React component library
+
+The contract is always the same: receive a ToonUI `node`, render your UI, and emit intent through ToonUI helpers.
+
+## Install common shadcn/ui components
+
+Start with the components used across the examples:
+
+```bash
+npx shadcn@latest add button card input textarea checkbox select table badge label alert alert-dialog tabs accordion dialog sheet popover tooltip progress breadcrumb pagination command skeleton separator
+```
+
+For charts, shadcn/ui commonly pairs its chart wrapper with Recharts:
+
+```bash
+npx shadcn@latest add chart
+pnpm add recharts
+```
+
+For toast-style UI, use your app toast system. In shadcn/ui projects this is commonly `sonner`.
+
+```bash
+npx shadcn@latest add sonner
+```
+
+## Base registry
+
+Register only the components your app actually supports.
+
+```tsx title="lib/toon-runtime.tsx"
+'use client';
+
+import { createToonReactRuntime } from '@toon-ui/react';
+import * as ToonComponents from '@/components/toon-components';
+
+export const toon = createToonReactRuntime({
+  components: {
+    text: ToonComponents.TextComponent,
+    heading: ToonComponents.HeadingComponent,
+    separator: ToonComponents.SeparatorComponent,
+    card: ToonComponents.CardComponent,
+    form: ToonComponents.FormComponent,
+    field: ToonComponents.FieldComponent,
+    button: ToonComponents.ButtonComponent,
+    confirm: ToonComponents.ConfirmComponent,
+    list: ToonComponents.ListComponent,
+    item: ToonComponents.ItemComponent,
+    badge: ToonComponents.BadgeComponent,
+    alert: ToonComponents.AlertComponent,
+    table: ToonComponents.TableComponent,
+    empty: ToonComponents.EmptyComponent,
+    tabs: ToonComponents.TabsComponent,
+    tab: ToonComponents.TabComponent,
+    accordion: ToonComponents.AccordionComponent,
+    section: ToonComponents.SectionComponent,
+    dialog: ToonComponents.DialogComponent,
+    sheet: ToonComponents.SheetComponent,
+    popover: ToonComponents.PopoverComponent,
+    tooltip: ToonComponents.TooltipComponent,
+    progress: ToonComponents.ProgressComponent,
+    loading: ToonComponents.LoadingComponent,
+    toast: ToonComponents.ToastComponent,
+    breadcrumb: ToonComponents.BreadcrumbComponent,
+    crumb: ToonComponents.CrumbComponent,
+    pagination: ToonComponents.PaginationComponent,
+    menu: ToonComponents.MenuComponent,
+    command: ToonComponents.CommandComponent,
+    action: ToonComponents.ActionComponent,
+    chart: ToonComponents.ChartComponent,
+    series: ToonComponents.SeriesComponent,
+    point: ToonComponents.PointComponent,
+  },
+});
+```
+
+Do not copy this whole registry unless you implement every component. A smaller catalog is usually better.
+
+## Shared helpers
+
+Use ToonUI helpers for behavior and small mapping helpers for visual variants.
+
+```tsx title="components/toon-components/helpers.ts"
+import type {
+  ToonBadgeComponentProps,
+  ToonButtonComponentProps,
+  ToonGenericComponentProps,
+} from '@toon-ui/react';
+
+export function mapButtonVariant(variant: ToonButtonComponentProps['node']['variant']) {
+  switch (variant) {
+    case 'primary':
+      return 'default';
+    case 'secondary':
+      return 'secondary';
+    case 'danger':
+      return 'destructive';
+    case 'outline':
+      return 'outline';
+    case 'ghost':
+      return 'ghost';
+  }
+}
+
+export function mapBadgeVariant(variant: ToonBadgeComponentProps['node']['variant']) {
+  switch (variant) {
+    case 'success':
+      return 'default';
+    case 'warning':
+      return 'secondary';
+    case 'danger':
+      return 'destructive';
+    case 'neutral':
+    case 'info':
+      return 'outline';
+  }
+}
+
+export function mapAlertVariant(variant: ToonGenericComponentProps<'alert'>['node']['variant']) {
+  return variant === 'danger' ? 'destructive' : 'default';
+}
+```
+
+## Content components
+
+### `text`
+
+Use plain text styling. Do not parse markdown here; markdown belongs to `ToonMessage.renderMarkdown`.
+
+```tsx
+import type { ToonTextComponentProps } from '@toon-ui/react';
+
+export function TextComponent({ node }: ToonTextComponentProps) {
+  return <p className="text-sm leading-6 text-foreground">{node.value}</p>;
+}
+```
+
+### `heading`
+
+Use the generic prop type because `heading` does not need special ToonUI helpers.
+
+```tsx
+import type { ToonGenericComponentProps } from '@toon-ui/react';
+
+export function HeadingComponent({ node }: ToonGenericComponentProps<'heading'>) {
+  const Tag = `h${node.level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+
+  return <Tag className="font-semibold tracking-tight">{node.text}</Tag>;
+}
+```
+
+### `separator`
+
+Map ToonUI orientation to shadcn/ui `Separator`.
+
+```tsx
+import { Separator } from '@/components/ui/separator';
+import type { ToonGenericComponentProps } from '@toon-ui/react';
+
+export function SeparatorComponent({ node }: ToonGenericComponentProps<'separator'>) {
+  return <Separator orientation={node.orientation} />;
+}
+```
+
+### `badge`
+
+Map ToonUI semantic variants to your badge variants.
+
+```tsx
+import { Badge } from '@/components/ui/badge';
+import type { ToonBadgeComponentProps } from '@toon-ui/react';
+import { mapBadgeVariant } from './helpers';
+
+export function BadgeComponent({ node }: ToonBadgeComponentProps) {
+  return <Badge variant={mapBadgeVariant(node.variant)}>{node.label}</Badge>;
+}
+```
+
+## Structure components
+
+### `card`
+
+Render title, optional description, and children.
+
+```tsx
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import type { ToonCardComponentProps } from '@toon-ui/react';
+
+export function CardComponent({ node, children }: ToonCardComponentProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{node.title}</CardTitle>
+        {node.description ? <CardDescription>{node.description}</CardDescription> : null}
+      </CardHeader>
+      {children ? <CardContent className="grid gap-3">{children}</CardContent> : null}
+    </Card>
+  );
+}
+```
+
+### `list`
+
+Use a semantic section plus a grid/list container. `list` children should be `item` nodes.
+
+```tsx
+import type { ToonListComponentProps } from '@toon-ui/react';
+
+export function ListComponent({ node, children }: ToonListComponentProps) {
+  return (
+    <section className="grid gap-3">
+      <h3 className="text-sm font-medium">{node.title}</h3>
+      <div className="grid gap-2">{children}</div>
+    </section>
+  );
+}
+```
+
+### `item`
+
+Use `Card` for list items when entries can have nested actions or metadata.
+
+```tsx
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import type { ToonItemComponentProps } from '@toon-ui/react';
+
+export function ItemComponent({ node, children }: ToonItemComponentProps) {
+  return (
+    <Card>
+      <CardHeader className="py-3">
+        <CardTitle className="text-sm">{node.title}</CardTitle>
+        {node.description ? <CardDescription>{node.description}</CardDescription> : null}
+      </CardHeader>
+      {children ? <CardContent className="grid gap-2 pb-3">{children}</CardContent> : null}
+    </Card>
+  );
+}
+```
+
+### `table`
+
+Map `node.columns` and `node.rows` to shadcn/ui table primitives.
+
+```tsx
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import type { ToonTableComponentProps } from '@toon-ui/react';
+
+export function TableComponent({ node }: ToonTableComponentProps) {
+  return (
+    <div className="overflow-hidden rounded-md border">
+      <Table>
+        <TableCaption>{node.title}</TableCaption>
+        <TableHeader>
+          <TableRow>
+            {node.columns.map((column) => <TableHead key={column}>{column}</TableHead>)}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {node.rows.map((row, rowIndex) => (
+            <TableRow key={rowIndex}>
+              {row.map((cell, cellIndex) => <TableCell key={cellIndex}>{cell}</TableCell>)}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+```
+
+### `empty`
+
+Use a centered card-like empty state.
+
+```tsx
+import { Button } from '@/components/ui/button';
+import type { ToonEmptyComponentProps } from '@toon-ui/react';
+
+export function EmptyComponent({ node, children }: ToonEmptyComponentProps) {
+  return (
+    <div className="grid gap-3 rounded-lg border border-dashed p-8 text-center">
+      <h3 className="font-medium">{node.title}</h3>
+      {node.description ? <p className="text-sm text-muted-foreground">{node.description}</p> : null}
+      {children ? <div className="mx-auto grid gap-2">{children}</div> : null}
+    </div>
+  );
+}
+```
+
+### `tabs` and `tab`
+
+`tabs` owns the shadcn/ui `Tabs` root. `tab` is a structural child.
+
+```tsx
+import * as React from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { ToonGenericComponentProps } from '@toon-ui/react';
+
+function tabValue(label: string, index: number) {
+  return `${index}-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+}
+
+export function TabsComponent({ node, children }: ToonGenericComponentProps<'tabs'>) {
+  const panels = React.Children.toArray(children);
+  const firstTab = node.children[0];
+
+  return (
+    <Tabs defaultValue={firstTab ? tabValue(firstTab.label, 0) : undefined} className="w-full">
+      <TabsList>
+        {node.children.map((tab, index) => (
+          <TabsTrigger key={`${tab.label}-${index}`} value={tabValue(tab.label, index)}>
+            {tab.label}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+      {node.children.map((tab, index) => (
+        <TabsContent key={`${tab.label}-${index}`} value={tabValue(tab.label, index)}>
+          <div className="grid gap-3">{panels[index]}</div>
+        </TabsContent>
+      ))}
+    </Tabs>
+  );
+}
+
+export function TabComponent({ children }: ToonGenericComponentProps<'tab'>) {
+  return <>{children}</>;
+}
+```
+
+If your tab renderer needs full control over triggers and panels, implement `tabs` as the owner and avoid separately rendering `tab` UI. The important concept: `tab` is structural.
+
+### `accordion` and `section`
+
+`accordion` owns the shadcn/ui `Accordion` root. `section` maps to one item.
+
+```tsx
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import type { ToonGenericComponentProps } from '@toon-ui/react';
+
+function sectionValue(title: string, line: number | undefined, indexFallback = 0) {
+  return `${line ?? indexFallback}-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+}
+
+export function AccordionComponent({ node, children }: ToonGenericComponentProps<'accordion'>) {
+  const firstSection = node.children[0];
+
+  return (
+    <Accordion
+      type="single"
+      collapsible
+      defaultValue={firstSection ? sectionValue(firstSection.title, firstSection.line, 0) : undefined}
+      className="w-full"
+    >
+      {children}
+    </Accordion>
+  );
+}
+
+export function SectionComponent({ node, children }: ToonGenericComponentProps<'section'>) {
+  return (
+    <AccordionItem value={sectionValue(node.title, node.line)}>
+      <AccordionTrigger>{node.title}</AccordionTrigger>
+      <AccordionContent>
+        <div className="grid gap-3">{children}</div>
+      </AccordionContent>
+    </AccordionItem>
+  );
+}
+```
+
+## Capture components
+
+### `form`
+
+Use shadcn/ui `Card` for the shell and a native `form` for submit behavior.
+
+```tsx
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import type { ToonFormComponentProps } from '@toon-ui/react';
+
+export function FormComponent({ node, children, submitForm, disabled }: ToonFormComponentProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{node.title}</CardTitle>
+        {node.description ? <CardDescription>{node.description}</CardDescription> : null}
+      </CardHeader>
+      <CardContent>
+        <form
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!disabled) submitForm();
+          }}
+        >
+          {children}
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+### `field`
+
+`field` is the most important adapter because different shadcn/ui inputs expose different event APIs.
+
+```tsx
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  getToonInputProps,
+  getToonTextareaProps,
+  type ToonFieldComponentProps,
+} from '@toon-ui/react';
+
+export function FieldComponent({ node, value, onChange, disabled }: ToonFieldComponentProps) {
+  const id = `${node.name}-${node.line}`;
+
+  if (node.fieldType === 'textarea') {
+    return (
+      <div className="grid gap-2">
+        <Label htmlFor={id}>{node.label}</Label>
+        <Textarea {...getToonTextareaProps({ node, value, onChange, disabled })} />
+      </div>
+    );
+  }
+
+  if (node.fieldType === 'checkbox' || node.fieldType === 'switch') {
+    return (
+      <div className="flex items-center gap-2">
+        <Checkbox id={id} checked={Boolean(value)} disabled={disabled} onCheckedChange={(checked) => onChange(Boolean(checked))} />
+        <Label htmlFor={id}>{node.label}</Label>
+      </div>
+    );
+  }
+
+  if (node.fieldType === 'select' || node.fieldType === 'radio' || node.fieldType === 'combobox') {
+    return (
+      <div className="grid gap-2">
+        <Label htmlFor={id}>{node.label}</Label>
+        <Select value={String(value ?? '')} disabled={disabled} onValueChange={(nextValue) => onChange(nextValue)}>
+          <SelectTrigger id={id}><SelectValue placeholder={node.placeholder ?? 'Select an option'} /></SelectTrigger>
+          <SelectContent>
+            {(node.options ?? []).map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={id}>{node.label}</Label>
+      <Input {...getToonInputProps({ node, value, onChange, disabled })} />
+    </div>
+  );
+}
+```
+
+For `slider`, `otp`, and `multiselect`, use your own design-system components and call `onChange` with `number`, `string`, or `string[]` as appropriate.
+
+### `button`
+
+Use `getToonButtonProps` so reply and submit behavior stays consistent.
+
+```tsx
+import { Button } from '@/components/ui/button';
+import { getToonButtonProps, type ToonButtonComponentProps } from '@toon-ui/react';
+import { mapButtonVariant } from './helpers';
+
+export function ButtonComponent({ node, sendReply, submitForm, disabled }: ToonButtonComponentProps) {
+  return (
+    <Button variant={mapButtonVariant(node.variant)} {...getToonButtonProps({ node, sendReply, submitForm, disabled })}>
+      {node.label}
+    </Button>
+  );
+}
+```
+
+### `confirm`
+
+`confirm` is semantic confirmation content. Your React host decides whether that content is shown inline, auto-opened, or opened from a trigger.
+
+For a copy-paste shadcn/ui implementation, use `node.trigger ?? node.title` as the trigger and let the user open the confirmation.
+
+```tsx
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import type { ToonConfirmComponentProps } from '@toon-ui/react';
+
+export function ConfirmComponent({ node, children }: ToonConfirmComponentProps) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant={node.variant === 'danger' ? 'destructive' : 'outline'}>{node.trigger ?? node.title}</Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{node.title}</AlertDialogTitle>
+          {node.description ? <AlertDialogDescription>{node.description}</AlertDialogDescription> : null}
+        </AlertDialogHeader>
+        <div className="grid gap-3">{children}</div>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+```
+
+If your product wants confirmations to appear immediately after the assistant response, control `open` from your chat shell. Otherwise, use `node.trigger ?? node.title` as the shadcn/ui trigger label.
+
+If you also close the dialog from a wrapper click handler, close it **after** the ToonUI button handler runs. Do not close in `onClickCapture`, because that can unmount the button before `reply` or `submit` is emitted.
+
+## Feedback components
+
+### `alert`
+
+Map ToonUI alert variants to shadcn/ui `Alert` variants.
+
+```tsx
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import type { ToonAlertComponentProps } from '@toon-ui/react';
+import { mapAlertVariant } from './helpers';
+
+export function AlertComponent({ node, children }: ToonAlertComponentProps) {
+  return (
+    <Alert variant={mapAlertVariant(node.variant)}>
+      <AlertTitle>{node.title}</AlertTitle>
+      {children ? <AlertDescription className="grid gap-2">{children}</AlertDescription> : null}
+    </Alert>
+  );
+}
+```
+
+### `progress`
+
+Use shadcn/ui `Progress`.
+
+```tsx
+import { Progress } from '@/components/ui/progress';
+import type { ToonGenericComponentProps } from '@toon-ui/react';
+
+export function ProgressComponent({ node }: ToonGenericComponentProps<'progress'>) {
+  const percent = Math.round((node.value / node.max) * 100);
+
+  return (
+    <div className="grid gap-2">
+      <div className="flex justify-between text-sm">
+        <span>{node.label}</span>
+        <span>{node.value}/{node.max}</span>
+      </div>
+      <Progress value={percent} />
+    </div>
+  );
+}
+```
+
+### `loading`
+
+Use shadcn/ui `Skeleton` or your app spinner.
+
+```tsx
+import { Skeleton } from '@/components/ui/skeleton';
+import type { ToonGenericComponentProps } from '@toon-ui/react';
+
+export function LoadingComponent({ node }: ToonGenericComponentProps<'loading'>) {
+  return (
+    <div className="grid gap-2" aria-busy="true">
+      <p className="text-sm text-muted-foreground">{node.text}</p>
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-2/3" />
+    </div>
+  );
+}
+```
+
+### `toast`
+
+Use your app toast system. With shadcn/ui projects, `sonner` is common.
+
+```tsx
+import { toast } from 'sonner';
+import type { ToonGenericComponentProps } from '@toon-ui/react';
+import { useEffect } from 'react';
+
+export function ToastComponent({ node }: ToonGenericComponentProps<'toast'>) {
+  useEffect(() => {
+    toast(node.text);
+  }, [node.text]);
+
+  return null;
+}
+```
+
+If you do not want side effects during render, show an inline alert instead.
+
+## Overlay components
+
+Important: overlay nodes describe semantic overlay content and can include an optional `trigger="..."` label. Your React host still owns open/close lifecycle.
+
+That means your React adapter has to choose an opening strategy:
+
+- render a trigger using `node.trigger ?? node.title`
+- render the content inline instead of as an overlay
+- control `open` from your chat shell
+- ignore overlay nodes unless your product has a real overlay pattern
+
+Do not enable `dialog`, `sheet`, or `popover` just because shadcn/ui has those components. Enable them only when your host UI can control the lifecycle.
+
+### `dialog`
+
+Use shadcn/ui `Dialog` with `node.trigger ?? node.title` as the trigger label.
+
+```tsx
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import type { ToonGenericComponentProps } from '@toon-ui/react';
+
+export function DialogComponent({ node, children }: ToonGenericComponentProps<'dialog'>) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">{node.trigger ?? node.title}</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>{node.title}</DialogTitle></DialogHeader>
+        <div className="grid gap-3">{children}</div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
+
+### `sheet`
+
+Use shadcn/ui `Sheet` with `node.trigger ?? node.title` as the trigger label and map `node.side`.
+
+```tsx
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import type { ToonGenericComponentProps } from '@toon-ui/react';
+
+export function SheetComponent({ node, children }: ToonGenericComponentProps<'sheet'>) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="outline">{node.trigger ?? node.title}</Button>
+      </SheetTrigger>
+      <SheetContent side={node.side}>
+        <SheetHeader><SheetTitle>{node.title}</SheetTitle></SheetHeader>
+        <div className="mt-4 grid gap-3">{children}</div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+```
+
+### `popover`
+
+A popover also needs a trigger. Use `node.trigger ?? node.title` unless your app shell provides something better.
+
+```tsx
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import type { ToonGenericComponentProps } from '@toon-ui/react';
+
+export function PopoverComponent({ node, children }: ToonGenericComponentProps<'popover'>) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild><Button variant="outline">{node.trigger ?? node.title}</Button></PopoverTrigger>
+      <PopoverContent className="grid gap-3">{children}</PopoverContent>
+    </Popover>
+  );
+}
+```
+
+### `tooltip`
+
+A tooltip also needs a trigger. Use `node.trigger ?? "More info"` for the trigger and `node.text` for the content.
+
+```tsx
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { ToonGenericComponentProps } from '@toon-ui/react';
+
+export function TooltipComponent({ node }: ToonGenericComponentProps<'tooltip'>) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger className="underline decoration-dotted">{node.trigger ?? 'More info'}</TooltipTrigger>
+        <TooltipContent>{node.text}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+```
+
+## Navigation components
+
+### `breadcrumb` and `crumb`
+
+`breadcrumb` owns the list. `crumb` can render one item.
+
+```tsx
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import type { ToonGenericComponentProps } from '@toon-ui/react';
+
+export function BreadcrumbComponent({ children }: ToonGenericComponentProps<'breadcrumb'>) {
+  return <Breadcrumb><BreadcrumbList>{children}</BreadcrumbList></Breadcrumb>;
+}
+
+export function CrumbComponent({ node, context }: ToonGenericComponentProps<'crumb'>) {
+  const content = node.action ? (
+    <BreadcrumbLink asChild>
+      <button type="button" onClick={() => context.sendReply({ kind: 'ui_reply', eventId: `reply_${node.line}`, source: 'button', component: 'button', value: node.action!.value, line: node.line, node: node as never })}>
+        {node.label}
+      </button>
+    </BreadcrumbLink>
+  ) : (
+    <BreadcrumbPage>{node.label}</BreadcrumbPage>
+  );
+
+  return (
+    <>
+      <BreadcrumbItem>{content}</BreadcrumbItem>
+      <BreadcrumbSeparator />
+    </>
+  );
+}
+```
+
+For production, prefer a small app-level helper to create event ids instead of hardcoding them.
+
+### `pagination`
+
+Use shadcn/ui pagination primitives and convert page clicks to app-level behavior.
+
+```tsx
+import { Pagination, PaginationContent, PaginationItem, PaginationLink } from '@/components/ui/pagination';
+import type { ToonGenericComponentProps } from '@toon-ui/react';
+
+export function PaginationComponent({ node }: ToonGenericComponentProps<'pagination'>) {
+  return (
+    <Pagination>
+      <PaginationContent>
+        {Array.from({ length: node.totalPages }, (_, index) => index + 1).map((page) => (
+          <PaginationItem key={page}>
+            <PaginationLink isActive={page === node.page}>{page}</PaginationLink>
+          </PaginationItem>
+        ))}
+      </PaginationContent>
+    </Pagination>
+  );
+}
+```
+
+### `menu` and `action`
+
+For semantic action lists, a simple card with shadcn/ui buttons is often clearer than a dropdown.
+
+```tsx
+import { Button } from '@/components/ui/button';
+import type { ToonGenericComponentProps } from '@toon-ui/react';
+import { mapButtonVariant } from './helpers';
+
+export function MenuComponent({ node, children }: ToonGenericComponentProps<'menu'>) {
+  return (
+    <div className="grid gap-2 rounded-lg border p-3">
+      <h3 className="text-sm font-medium">{node.title}</h3>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  );
+}
+
+export function ActionComponent({ node, context, disabled }: ToonGenericComponentProps<'action'>) {
+  return (
+    <Button
+      type="button"
+      variant={mapButtonVariant(node.variant ?? 'secondary')}
+      disabled={disabled}
+      onClick={() => {
+        if (node.action.kind === 'reply') {
+          context.sendReply({ kind: 'ui_reply', eventId: `reply_${node.line}`, source: 'button', component: 'button', value: node.action.value, line: node.line, node: node as never });
+        }
+      }}
+    >
+      {node.label}
+    </Button>
+  );
+}
+```
+
+### `command`
+
+Use shadcn/ui `Command` when you want command-palette style actions.
+
+ToonUI `command` is the command list content and can provide `node.trigger` for a launcher label. It is not automatically a global `cmd+k` launcher; if you want a global palette, your app shell owns the trigger and open state.
+
+```tsx
+import { Command, CommandGroup, CommandList } from '@/components/ui/command';
+import type { ToonGenericComponentProps } from '@toon-ui/react';
+
+export function CommandComponent({ node, children }: ToonGenericComponentProps<'command'>) {
+  return (
+    <Command className="rounded-lg border">
+      <CommandList>
+        <CommandGroup heading={node.title}>{children}</CommandGroup>
+      </CommandList>
+    </Command>
+  );
+}
+```
+
+Reuse `ActionComponent` for the children, or create a command-specific action renderer with `CommandItem`.
+
+## Analytics components
+
+### `chart`, `series`, and `point`
+
+`chart` should own the actual chart library. `series` and `point` are structural data nodes.
+
+```tsx
+import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+import type { ToonGenericComponentProps } from '@toon-ui/react';
+
+const chartColors = ['#2563eb', '#7c3aed', '#0891b2', '#f59e0b', '#10b981'];
+
+export function ChartComponent({ node }: ToonGenericComponentProps<'chart'>) {
+  const labels = [...new Set(node.children.flatMap((series) => series.children.map((point) => point.label)))];
+  const data = labels.map((label) => {
+    const row: Record<string, string | number> = { label };
+
+    for (const series of node.children) {
+      row[series.label] = series.children.find((point) => point.label === label)?.value ?? 0;
+    }
+
+    return row;
+  });
+  const config = Object.fromEntries(
+    node.children.map((series, index) => [
+      series.label,
+      { label: series.label, color: chartColors[index % chartColors.length] },
+    ]),
+  ) satisfies ChartConfig;
+
+  return (
+    <div className="grid gap-3 rounded-lg border p-4">
+      <div>
+        <h3 className="font-medium">{node.title}</h3>
+        {node.description ? <p className="text-sm text-muted-foreground">{node.description}</p> : null}
+      </div>
+      <ChartContainer config={config} className="min-h-64 w-full">
+        <BarChart data={data}>
+          <CartesianGrid vertical={false} />
+          <XAxis dataKey="label" />
+          <ChartTooltip content={<ChartTooltipContent />} />
+          {node.children.map((series, index) => (
+            <Bar
+              key={series.label}
+              dataKey={series.label}
+              fill={chartColors[index % chartColors.length]}
+              isAnimationActive={false}
+            />
+          ))}
+        </BarChart>
+      </ChartContainer>
+    </div>
+  );
+}
+
+export function SeriesComponent({ children }: ToonGenericComponentProps<'series'>) {
+  return <>{children}</>;
+}
+
+export function PointComponent() {
+  return null;
+}
+```
+
+For production charts, normalize multiple series by label before passing data to Recharts. The snippet shows the adapter shape, not a full analytics engine.
+
+## When to use your own components instead
+
+Use your own design-system component when:
+
+- your app already has approved UI primitives
+- shadcn/ui variants do not match your brand semantics
+- accessibility behavior is owned by your internal platform team
+- charting, dialogs, sheets, or menus need product-specific behavior
+
+The ToonUI requirement is not “use shadcn/ui”. The requirement is “implement the official ToonUI node contract”.
+
+## Checklist per component
+
+Before adding a component to the catalog:
+
+- implement the React adapter
+- register the adapter in `createToonReactRuntime`
+- enable the same key in `createToonProtocol`
+- include required child keys, such as `form -> field + button`
+- ensure interactive components respect `disabled`
+- emit intent instead of executing business mutations inside the component
+
+## Read next
+
+1. [Catalog](/docs/language/catalog)
+2. [@toon-ui/react](/docs/packages/react)

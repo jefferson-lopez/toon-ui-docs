@@ -28,6 +28,6 @@ pnpm build
 
 ## Notes
 
-- The app now consumes published package versions such as `@toon-ui/toon-ui`.
+- The app now consumes published package versions such as `@toon-ui/core` and `@toon-ui/react`.
 - If you need to preview unreleased package changes, publish a prerelease version or use a temporary local link deliberately.
 - Generated Fumadocs artifacts live under `.source/` and should not be committed unless you explicitly want generated files in git.

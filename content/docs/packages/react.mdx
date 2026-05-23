@@ -1,110 +1,647 @@
 ---
 title: "@toon-ui/react"
-description: "The explicit React integration layer for teams that want full ownership of rendering and adapters."
+description: "Complete API reference for the ToonUI React runtime, renderers, adapters, hooks, helpers, and component props."
 ---
 
-`@toon-ui/react` is the package for teams that want control, not just convenience.
+`@toon-ui/react` is the client rendering package.
 
-Use it when the UI layer matters enough that defaults are not enough.
+Use it in React client code to:
 
-## Why use `@toon-ui/react`?
+- register the standard ToonUI components your app can render
+- render mixed markdown plus `toon-ui` blocks
+- capture button replies and form submits
+- convert those interactions into messages for your chat loop
 
-Use it when you want:
+Do not import it from server-only files. Use `@toon-ui/core` on the server.
 
-- explicit adapter ownership
-- custom component mapping
-- design-system integration
-- stricter rendering guarantees
+## Install
 
-## What it owns
-
-- React rendering runtime
-- adapter creation
-- adapter coverage metadata
-- preset merging
-- helper props for custom controls
-
-## Core APIs
-
-- `createToonReactAdapter()`
-- `createToonReactRuntime()`
-- `ToonMessage`
-- `ToonRenderer`
-- `extractToonMarkdown()`
-- `getToonButtonProps()`
-- `getToonInputProps()`
-- `getToonTextareaProps()`
-- `getToonCheckboxProps()`
-- `basicPreset()`
-- `useToonAction()`
-
-## Recommended starting pattern
-
-```tsx
-import {
-  createToonReactAdapter,
-  createToonReactRuntime,
-  getToonButtonProps,
-  type ToonButtonComponentProps,
-} from '@toon-ui/react';
-
-function MyButton(props: ToonButtonComponentProps) {
-  return <button {...getToonButtonProps(props)}>{props.node.label}</button>;
-}
-
-const adapter = createToonReactAdapter({
-  level: 'default',
-  components: {
-    button: MyButton,
-  },
-});
-
-const runtime = createToonReactRuntime({ adapter });
+```bash
+pnpm add @toon-ui/react
 ```
 
-## Adapter levels
+## Main API map
 
-| Level | Meaning |
+| Area | APIs |
 |---|---|
-| `minimal` | Only the components you register |
-| `default` | Built-in defaults plus your overrides |
-| `strict` | Full coverage required or the runtime throws |
+| Runtime | `createToonReactRuntime`, `ToonReactRuntime` |
+| Adapter | `createToonReactAdapter`, `createToonAdapter`, `assertToonReactAdapter`, `getToonAdapterCoverage`, `mergeToonComponentRegistry` |
+| Rendering | `ToonMessage`, `ToonRenderer`, `ToonProvider`, `ToonError` |
+| Hooks | `useToonUI`, `useToonAction`, `useToonReply`, `useToonSubmit` |
+| Helpers | `extractToonMarkdown`, `getToonButtonProps`, `getToonInputProps`, `getToonTextareaProps`, `getToonCheckboxProps`, `getToonFieldId` |
+| Props/types | component props, payload props, adapter metadata, error state, resolved DOM prop types |
 
-## When `strict` matters
+---
 
-Use `strict` when your team wants hard guarantees that every semantic node is intentionally owned.
+## Runtime APIs
 
-That is especially useful when:
+### `createToonReactRuntime(options)`
 
-- you have a mature design system
-- visual consistency matters a lot
-- fallback rendering is not acceptable
+Creates the React runtime from registered components or an adapter.
 
-## Why the helper props matter
+```tsx
+import { createToonReactRuntime } from '@toon-ui/react';
 
-The `getToon*Props()` helpers preserve correct behavior for custom components.
+const toon = createToonReactRuntime({
+  components: {
+    text: TextComponent,
+    card: CardComponent,
+    form: FormComponent,
+    field: FieldComponent,
+    button: ButtonComponent,
+  },
+});
+```
 
-That means your custom button or field still gets:
+#### Parameters
 
-- normalized values
-- click handling
-- submit wiring
-- disabled-state behavior
+| Option | Type | Required | Description |
+|---|---|---:|---|
+| `components` | `ToonReactComponentRegistry` | No | React components keyed by standard ToonUI node type. |
+| `adapter` | `ToonReactAdapter` | No | Prebuilt adapter. If provided, it is used instead of creating one from `components`. |
+| `adapterLevel` | `'minimal' \| 'default' \| 'strict'` | No | Level used when creating an internal adapter. Defaults to `minimal`. |
+| `layout` | `ToonReactLayoutOptions` | No | Spacing configuration for message, block, and node gaps. |
 
-Without those helpers, teams often rebuild behavior inconsistently.
+#### Returns
 
-## Decision rule
+```ts
+type ToonReactRuntime = ToonRuntime<ToonReactComponentRegistry> & {
+  adapter: ToonReactAdapter;
+  layout: {
+    messageGap: React.CSSProperties['gap'];
+    blockGap: React.CSSProperties['gap'];
+    nodeGap: React.CSSProperties['gap'];
+  };
+};
+```
 
-Choose `@toon-ui/react` if your priority is:
+The runtime includes core APIs too:
 
-- control first
-- explicit rendering ownership
-- long-term integration depth
+- `prompt`
+- `rules`
+- `catalog`
+- `events`
+- `messages`
+- `parse`
+- `validate`
+- `extractBlocks`
 
-Choose `@toon-ui/toon-ui` if your priority is speed.
+#### Important behavior
 
-## Next step
+`createToonReactRuntime` requires a configured component catalog. If no components or adapter are provided, it throws.
 
-1. [React Runtime and Hooks](/docs/reference/react-runtime-and-hooks)
-2. [@toon-ui/toon-ui](/docs/packages/toon-ui)
-3. [Package Architecture](/docs/architecture/package-architecture)
+That is intentional. ToonUI should not let the model generate UI your app did not configure.
+
+---
+
+### `ToonReactLayoutOptions`
+
+Controls spacing in the default wrapper layout.
+
+```tsx
+const toon = createToonReactRuntime({
+  components,
+  layout: {
+    messageGap: 20,
+    blockGap: 16,
+    nodeGap: 12,
+  },
+});
+```
+
+| Option | Meaning | Default |
+|---|---|---|
+| `messageGap` | gap between ordered markdown/UI segments in `ToonMessage` | `16` |
+| `blockGap` | gap between rendered ToonUI blocks | `16` |
+| `nodeGap` | gap between nodes inside block containers | `12` |
+
+---
+
+## Adapter APIs
+
+### `createToonReactAdapter(options)`
+
+Creates an adapter object around a component registry.
+
+```tsx
+const adapter = createToonReactAdapter({
+  level: 'strict',
+  components: {
+    text: TextComponent,
+    card: CardComponent,
+    form: FormComponent,
+    field: FieldComponent,
+    button: ButtonComponent,
+  },
+});
+```
+
+#### Parameters
+
+| Option | Type | Required | Description |
+|---|---|---:|---|
+| `components` | `ToonReactComponentRegistry` | No | Component registry. |
+| `level` | `'minimal' \| 'default' \| 'strict'` | No | Coverage behavior. Defaults to `minimal`. |
+
+#### Returns
+
+```ts
+type ToonReactAdapter = {
+  components: ToonReactComponentRegistry;
+  meta: ToonReactAdapterMeta;
+};
+```
+
+### Adapter levels
+
+| Level | Behavior |
+|---|---|
+| `minimal` | only components you pass are registered |
+| `strict` | throws if any adapter key is missing |
+
+Use `minimal` for explicit production integration. Use `strict` when design-system coverage must be complete.
+
+---
+
+### `createToonAdapter`
+
+Alias for `createToonReactAdapter`.
+
+```ts
+const adapter = createToonAdapter({ components });
+```
+
+---
+
+### `getToonAdapterCoverage(components, level?)`
+
+Computes adapter coverage metadata.
+
+```ts
+const meta = getToonAdapterCoverage(components, 'minimal');
+```
+
+#### Returns
+
+```ts
+type ToonReactAdapterMeta = {
+  level: 'minimal' | 'default' | 'strict';
+  isComplete: boolean;
+  providedKeys: ToonReactAdapterComponentKey[];
+  missingKeys: ToonReactAdapterComponentKey[];
+};
+```
+
+Use it for diagnostics, tests, or integration health checks.
+
+---
+
+### `assertToonReactAdapter(adapter)`
+
+Returns the adapter when valid. Throws when `adapter.meta.level === 'strict'` and coverage is incomplete.
+
+```ts
+assertToonReactAdapter(adapter);
+```
+
+---
+
+### `mergeToonComponentRegistry(...registries)`
+
+Merges registries from left to right.
+
+```ts
+const components = mergeToonComponentRegistry(baseComponents, overrides);
+```
+
+Later registries override earlier ones.
+
+---
+
+---
+
+## Rendering APIs
+
+### `ToonMessage`
+
+Renders mixed assistant output: markdown plus fenced `toon-ui` blocks.
+
+```tsx
+<ToonMessage
+  content={content}
+  runtime={toon}
+  renderMarkdown={(markdown) => <MessageResponse>{markdown}</MessageResponse>}
+  renderError={(error) => <MyError details={error.details} />}
+  onReply={(payload) => append(toon.messages.toUIMessage(payload))}
+  onSubmit={(payload) => append(toon.messages.toUIMessage(payload))}
+/>
+```
+
+#### Props
+
+| Prop | Type | Required | Description |
+|---|---|---:|---|
+| `content` | `string` | Yes | Assistant output containing markdown and optional `toon-ui` fenced blocks. |
+| `runtime` | `ToonReactRuntime` | Yes | Runtime created with `createToonReactRuntime`. |
+| `onReply` | `(payload: ToonReplyPayload) => void` | No | Called when a reply button is clicked. |
+| `onSubmit` | `(payload: ToonSubmitPayload) => void` | No | Called when a form is submitted. |
+| `renderMarkdown` | `(markdown: string) => React.ReactNode` | No | Custom markdown renderer. Defaults to `react-markdown`. |
+| `interactive` | `boolean` | No | Enables/disables interactions. Defaults to `true`. |
+| `renderError` | `ToonErrorRenderer` | No | Custom parse/validation error renderer. |
+| `showErrorDetails` | `boolean` | No | Shows validation/parse details in default error UI. Defaults to `false`. |
+
+#### Markdown responsibility
+
+`ToonMessage` can render markdown with a default renderer, but real apps usually pass their own `renderMarkdown` so prose matches the rest of the chat UI.
+
+---
+
+### `ToonRenderer`
+
+Renders only `toon-ui` blocks from content. It ignores markdown.
+
+```tsx
+<ToonRenderer
+  content={content}
+  runtime={toon}
+  onReply={handleReply}
+  onSubmit={handleSubmit}
+/>
+```
+
+#### Props
+
+| Prop | Type | Required | Description |
+|---|---|---:|---|
+| `content` | `string` | Yes | Content containing one or more `toon-ui` blocks. |
+| `runtime` | `ToonReactRuntime` | Yes | Runtime created with `createToonReactRuntime`. |
+| `onReply` | `(payload: ToonReplyPayload) => void` | No | Called for reply interactions. |
+| `onSubmit` | `(payload: ToonSubmitPayload) => void` | No | Called for form submissions. |
+| `interactive` | `boolean` | No | Enables/disables interactions. |
+| `renderError` | `ToonErrorRenderer` | No | Custom parse/validation error renderer. |
+| `showErrorDetails` | `boolean` | No | Shows details in default error UI. |
+
+Use `ToonRenderer` when your app renders markdown separately.
+
+---
+
+### `ToonProvider`
+
+Provides runtime and interaction context for lower-level custom rendering.
+
+```tsx
+<ToonProvider runtime={toon} onReply={handleReply} onSubmit={handleSubmit}>
+  {children}
+</ToonProvider>
+```
+
+#### Props
+
+| Prop | Type | Required | Description |
+|---|---|---:|---|
+| `runtime` | `ToonReactRuntime` | Yes | Runtime instance. |
+| `children` | `React.ReactNode` | Yes | Descendant render tree. |
+| `onReply` | `(payload: ToonReplyPayload) => void` | No | Reply callback. |
+| `onSubmit` | `(payload: ToonSubmitPayload) => void` | No | Submit callback. |
+| `interactive` | `boolean` | No | When false, interactions are disabled/resolved. Defaults to `true`. |
+
+`ToonMessage` and `ToonRenderer` already use `ToonProvider` internally.
+
+---
+
+### `ToonError`
+
+Default error display component.
+
+```tsx
+<ToonError message="This interface could not be displayed." details={details} />
+```
+
+| Prop | Type | Required | Description |
+|---|---|---:|---|
+| `message` | `string` | Yes | Main error message. |
+| `details` | `string[]` | No | Optional error details. |
+
+---
+
+## Hook APIs
+
+### `useToonUI()`
+
+Returns the current `ToonReactRuntime` from context.
+
+```tsx
+const runtime = useToonUI();
+```
+
+Throws if used outside `ToonProvider`.
+
+---
+
+### `useToonReply()`
+
+Returns the reply dispatcher from render context.
+
+```tsx
+const sendReply = useToonReply();
+```
+
+Throws if used outside `ToonProvider`.
+
+---
+
+### `useToonSubmit()`
+
+Returns the form submit dispatcher from render context.
+
+```tsx
+const submitForm = useToonSubmit();
+```
+
+Throws if used outside `ToonProvider`.
+
+---
+
+### `useToonAction()`
+
+Returns protocol helpers from the current runtime.
+
+```tsx
+const { events, messages } = useToonAction();
+```
+
+Use this inside custom components when you need event/message helpers without importing a separate runtime.
+
+---
+
+## Helper APIs
+
+### `extractToonMarkdown(content)`
+
+Returns only markdown prose from mixed content, stripping `toon-ui` blocks.
+
+```ts
+const markdown = extractToonMarkdown(content);
+```
+
+Use it when rendering markdown and ToonUI separately.
+
+---
+
+### `getToonFieldId(node)`
+
+Creates a stable field id from a field node.
+
+```ts
+const id = getToonFieldId(props.node);
+```
+
+Returns `string` in the form `<field-name>-<line>`.
+
+---
+
+### `getToonButtonProps(props)`
+
+Returns normalized DOM props for a button component.
+
+```tsx
+function ButtonComponent(props: ToonButtonComponentProps) {
+  return <button {...getToonButtonProps(props)}>{props.node.label}</button>;
+}
+```
+
+#### Returns
+
+```ts
+type ToonResolvedButtonProps = Pick<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  'type' | 'disabled' | 'onClick'
+>;
+```
+
+It handles:
+
+- disabled state
+- reply actions
+- submit actions
+
+---
+
+### `getToonInputProps(props)`
+
+Returns normalized props for text-like inputs.
+
+```tsx
+<input {...getToonInputProps(props)} />
+```
+
+It handles:
+
+- id/name
+- input type
+- required/disabled
+- placeholder
+- value
+- numeric conversion for `number` fields
+- change dispatch
+
+---
+
+### `getToonTextareaProps(props)`
+
+Returns normalized props for textarea fields.
+
+```tsx
+<textarea {...getToonTextareaProps(props)} />
+```
+
+---
+
+### `getToonCheckboxProps(props)`
+
+Returns normalized props for checkbox fields.
+
+```tsx
+<input {...getToonCheckboxProps(props)} />
+```
+
+It maps `checked` to the current field value and dispatches boolean changes.
+
+---
+
+## Component registry
+
+The registry maps standard ToonUI node types to React components.
+
+```ts
+type ToonReactComponentRegistry = Partial<{
+  [K in keyof ToonReactComponentPropsByType]: React.ComponentType<ToonReactComponentPropsByType[K]>;
+}>;
+```
+
+Specialized props exist for the common components that need interaction wiring.
+
+## Shared base props
+
+Most component props include:
+
+| Prop | Meaning |
+|---|---|
+| `node` | Parsed AST node for that component. |
+| `children` | Rendered child nodes, when the component supports children. |
+| `context` | Low-level render context. |
+| `disabled` | Whether the block has already resolved or interactivity is disabled. |
+
+## Specialized component props
+
+### `ToonTextComponentProps`
+
+```ts
+type ToonTextComponentProps = {
+  node: TextNode;
+  context: ToonRenderContextValue;
+  disabled?: boolean;
+};
+```
+
+Use `node.value` for visible text.
+
+---
+
+### `ToonCardComponentProps`
+
+```ts
+type ToonCardComponentProps = {
+  node: CardNode;
+  children?: React.ReactNode;
+  context: ToonRenderContextValue;
+  disabled?: boolean;
+};
+```
+
+Use `node.title`, optional `node.description`, and `children`.
+
+---
+
+### `ToonFormComponentProps`
+
+```ts
+type ToonFormComponentProps = {
+  node: FormNode;
+  children?: React.ReactNode;
+  context: ToonRenderContextValue;
+  submitForm: () => void;
+  values: Record<string, ToonFieldValue>;
+  disabled: boolean;
+};
+```
+
+Use `submitForm` if your form shell owns the submit button. In most generated forms, submit is usually triggered by a `button submit` child.
+
+---
+
+### `ToonFieldComponentProps`
+
+```ts
+type ToonFieldComponentProps = {
+  node: FieldNode;
+  context: ToonRenderContextValue;
+  value: ToonFieldValue | undefined;
+  onChange: (value: ToonFieldValue) => void;
+  disabled: boolean;
+};
+```
+
+Use `getToonInputProps`, `getToonTextareaProps`, or `getToonCheckboxProps` to wire inputs.
+
+---
+
+### `ToonButtonComponentProps`
+
+```ts
+type ToonButtonComponentProps = {
+  node: ButtonNode;
+  context: ToonRenderContextValue;
+  sendReply: (reply?: string) => void;
+  submitForm: () => void;
+  disabled: boolean;
+};
+```
+
+Use `getToonButtonProps` unless you need custom interaction behavior.
+
+---
+
+### Other specialized props
+
+| Type | Node |
+|---|---|
+| `ToonConfirmComponentProps` | `ConfirmNode` |
+| `ToonListComponentProps` | `ListNode` |
+| `ToonItemComponentProps` | `ItemNode` |
+| `ToonBadgeComponentProps` | `BadgeNode` |
+| `ToonAlertComponentProps` | `AlertNode` |
+| `ToonTableComponentProps` | `TableNode` |
+| `ToonEmptyComponentProps` | `EmptyNode` |
+
+For less-common nodes, use:
+
+```ts
+type ToonGenericComponentProps<'heading'>
+```
+
+or:
+
+```ts
+type ToonTypedNode<'heading'>
+```
+
+## Payload types
+
+### `ToonReplyPayload`
+
+Extends core `ReplyPayload` with the originating `ButtonNode`.
+
+```ts
+type ToonReplyPayload = ReplyPayload & {
+  node: ButtonNode;
+};
+```
+
+### `ToonSubmitPayload`
+
+Extends core `SubmitPayload` with the originating `FormNode`.
+
+```ts
+type ToonSubmitPayload = SubmitPayload & {
+  node: FormNode;
+};
+```
+
+## Error types
+
+### `ToonRenderErrorState`
+
+Passed to `renderError`.
+
+```ts
+type ToonRenderErrorState = {
+  kind: 'parse' | 'validation';
+  block: ToonBlock;
+  message: string;
+  details: string[];
+  cause?: unknown;
+};
+```
+
+### `ToonErrorRenderer`
+
+```ts
+type ToonErrorRenderer = (error: ToonRenderErrorState) => React.ReactNode;
+```
+
+## Read next
+
+- [Vercel AI SDK guide](/docs/guides/vercel-ai-sdk)
+- [Custom React Components](/docs/guides/custom-adapter)
+- [Events and Messages](/docs/reference/events-and-messages)
