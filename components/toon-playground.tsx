@@ -2096,7 +2096,7 @@ export function ToonPlayground() {
                 void submitPlainPrompt(prompt);
               }}
             >
-              <InputGroup className="min-h-10 z-10 rounded-md">
+              <InputGroup className="min-h-20 z-10 rounded-md">
                 <TextareaAutosize
                   ref={promptTextareaRef}
                   data-slot="input-group-control"
@@ -2105,7 +2105,7 @@ export function ToonPlayground() {
                   minRows={2}
                   maxRows={3}
                   placeholder="Ask a question"
-                  className="flex field-sizing-content min-h-10 h-10 w-full resize-none rounded-md px-3 py-2.5 text-base leading-6 transition-[color,box-shadow] outline-none placeholder:text-muted-foreground md:text-sm"
+                  className="flex field-sizing-content min-h-20 w-full resize-none rounded-md px-3 py-2.5 text-base leading-6 transition-[color,box-shadow] outline-none placeholder:text-muted-foreground md:text-sm"
                 />
                 <InputGroupAddon align="inline-end">
                   <InputGroupButton
