@@ -37,6 +37,7 @@ import {
   User,
   XCircle,
   AlertTriangle,
+  CornerDownRight,
 } from "lucide-react";
 import {
   ToonMessage,
@@ -2096,7 +2097,7 @@ export function ToonPlayground() {
                 void submitPlainPrompt(prompt);
               }}
             >
-              <InputGroup className="min-h-20 z-10 rounded-md">
+              <InputGroup className="min-h-20 flex items-end z-10 rounded-md">
                 <TextareaAutosize
                   ref={promptTextareaRef}
                   data-slot="input-group-control"
@@ -2109,13 +2110,12 @@ export function ToonPlayground() {
                 />
                 <InputGroupAddon align="inline-end">
                   <InputGroupButton
-                    size="sm"
+                    size="icon-sm"
                     variant="default"
                     type="submit"
                     disabled={isSending || !prompt.trim()}
                   >
-                    <Send className="size-4" />
-                    Send
+                    <CornerDownRight className="size-4" />
                   </InputGroupButton>
                 </InputGroupAddon>
               </InputGroup>
