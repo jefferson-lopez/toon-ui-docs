@@ -42,4 +42,4 @@ export const metadata: Metadata = {
     follow: true,
   },
 };
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="en" suppressHydrationWarning className={cn(geistSans.variable, geistMono.variable)}><body className="flex min-h-screen flex-col antialiased"><ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange><RootProvider>{children}</RootProvider></ThemeProvider></body></html>; }
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="en" suppressHydrationWarning className={cn(geistSans.variable, geistMono.variable)}><body className="flex min-h-dvh flex-col antialiased"><ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange><RootProvider>{children}</RootProvider></ThemeProvider></body></html>; }

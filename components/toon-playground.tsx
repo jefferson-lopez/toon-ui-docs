@@ -1948,7 +1948,7 @@ export function ToonPlayground() {
     );
 
   return (
-    <section className="flex h-dvh min-h-0 w-full flex-col overflow-hidden bg-background">
+    <section className="flex flex-1 overscroll-none h-full min-h-0 w-full flex-col overflow-hidden bg-background">
       <header className="shrink-0 flex items-center justify-between gap-4 border-b px-4 py-4">
         <Link
           href="/"
@@ -2085,7 +2085,7 @@ export function ToonPlayground() {
 
           <div
             className={cn(
-              "pointer-events-none px-5 z-20 pb-[calc(1rem+env(safe-area-inset-bottom))]",
+              "pointer-events-none z-20 shrink-0 bg-background px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3",
               mobileTab !== "chat" && "hidden lg:block",
             )}
           >

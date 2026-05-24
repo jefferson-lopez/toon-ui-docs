@@ -18,10 +18,8 @@ export const metadata: Metadata = buildPageMetadata({
 
 export default function PlaygroundPage() {
   return (
-    <main className="flex h-dvh w-full flex-col overflow-hidden bg-background">
-      <div className="min-h-0 flex-1">
-        <ToonPlayground />
-      </div>
+    <main className="flex h-dvh overscroll-none w-full flex-col overflow-hidden bg-background">
+      <ToonPlayground />
     </main>
   );
 }
