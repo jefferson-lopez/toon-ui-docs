@@ -443,19 +443,19 @@ const supportedComponents: Array<{
 
 const promptPresets = [
   {
-    label: "I want to create a product",
+    label: "Build a product form",
     prompt:
-      "I want to create a new product in my catalog. Ask me for the right information inside the chat and help me confirm it before saving.",
+      "Create a realistic product creation flow inside the chat. Ask for the required product fields, render a ToonUI form, validate missing information, and show a confirmation step before saving.",
   },
   {
-    label: "I want to review my notes",
+    label: "Compare customer orders",
     prompt:
-      "I want to review my notes and decide what to do next. Show me a useful summary and clear next actions inside the chat.",
+      "Show a realistic customer order review workflow using ToonUI. Include a summary card, a table of recent orders, status badges, and clear actions for approving, refunding, or contacting the customer.",
   },
   {
-    label: "Show me every enabled component",
+    label: "Show the full catalog",
     prompt:
-      "Show me a ToonUI showcase inside the chat using every component enabled in this playground catalog: text, badge, list, item, card, confirm, alert, table, empty, form, field, and button.",
+      "Create a compact ToonUI showcase using the active playground catalog. Demonstrate the supported components with realistic examples, including layout, feedback, navigation, forms, lists, tables, overlays, commands, pagination, and charts.",
   },
 ] as const;
 
