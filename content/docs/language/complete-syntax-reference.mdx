@@ -238,13 +238,13 @@ badge "Active" success
 **Syntax**
 
 ```txt
-alert <variant> "Title":
+alert <variant> "Title" [description="..."]:
 ```
 
 **Example**
 
 ```txt
-alert warning "Inventory mismatch":
+alert warning "Inventory mismatch" description="Review the counted quantity before saving.":
   text "The counted stock does not match the expected total."
 ```
 
@@ -335,13 +335,13 @@ accordion "Advanced settings":
 **Syntax**
 
 ```txt
-dialog "Title" [trigger="..."]:
+dialog "Title" [trigger="..."] [description="..."]:
 ```
 
 **Example**
 
 ```txt
-dialog "Customer details" trigger="Open details":
+dialog "Customer details" trigger="Open details" description="Review customer context before taking action.":
   text "This is modal content."
 ```
 
@@ -514,7 +514,7 @@ command "Jump to" trigger="Open command palette":
 **Syntax**
 
 ```txt
-chart <type> "Title":
+chart <type> "Title" [description="..."] [x="..."] [y="..."]:
 ```
 
 **Required structure**
@@ -524,6 +524,7 @@ chart <type> "Title":
 
 **Optional attributes**
 
+- `description="..."`
 - `x="..."`
 - `y="..."`
 
@@ -683,16 +684,35 @@ Wrong because:
 - `tab` only works inside `tabs`
 - `series` only works inside `chart`
 
-### 4. Do not use unquoted field default values
+### 4. Do not place `field` directly inside `dialog`
+
+```txt
+dialog "Contact customer" description="Send a message to the customer.":
+  field message textarea "Message" required
+  button primary "Send" submit
+```
+
+Wrong because `field` only collects data as part of a `form`.
+
+Correct:
+
+```txt
+dialog "Contact customer" description="Send a message to the customer.":
+  form "Customer message" description="Write the message before sending.":
+    field message textarea "Message" required
+    button primary "Send" submit
+```
+
+### 5. Do not use unquoted field default values
 
 ```txt
 field active switch "Active" value=true
 field score slider "Score" min=0 max=10 step=1 value=7
 ```
 
-Wrong because the parser reads field defaults from quoted `value="..."`.
+Wrong because the parser reads field defaults from quoted `value="..."`, and React uses those parsed values as initial input values.
 
-### 5. Do not emit incomplete strict nodes
+### 6. Do not emit incomplete strict nodes
 
 ```txt
 alert "Low stock"

@@ -101,14 +101,14 @@ confirm <variant> "Title" [trigger="..."] [description="..."]:
 list "Title":
 item "Title" [description="..."]:
 badge "Label" <variant>
-alert <variant> "Title":
+alert <variant> "Title" [description="..."]:
 table "Title":
 empty "Title" [description="..."]:
 tabs "Title":
 tab "Label":
 accordion "Title":
 section "Title":
-dialog "Title" [trigger="..."]:
+dialog "Title" [trigger="..."] [description="..."]:
 sheet "Title" [trigger="..."] side="left|right|top|bottom":
 popover "Title" [trigger="..."]:
 tooltip "Visible text" [trigger="..."]
@@ -125,7 +125,7 @@ action "Label" reply="Value" variant="secondary"
 command "Title" [trigger="..."]:
 action "Label" reply="Value"
 action "Label" submit
-chart <type> "Title" [x="..."] [y="..."]:
+chart <type> "Title" [description="..."] [x="..."] [y="..."]:
 series "Label":
 point "Label" <number>
 ```
@@ -159,7 +159,7 @@ These nodes always require a quoted title:
 |---|---|
 | `button` | Must include variant, label, and either `reply="..."` or `submit` |
 | `form` | Must include title, one or more `field` nodes, and one submit button |
-| `alert` | Must include variant, title, `:`, and nested children |
+| `alert` | Must include variant, title, optional `description="..."`, `:`, and nested children |
 | `empty` | Must include title, `:`, and nested children |
 | `progress` | Must include label, `value=<number>`, and `max=<number>` |
 | `pagination` | Must include `page=<number>` and `totalPages=<number>` |
@@ -169,7 +169,28 @@ These nodes always require a quoted title:
 | `tabs` | Must include one or more `tab` children |
 | `accordion` | Must include one or more `section` children |
 | `chart` | Must include one or more `series` children, and each `series` must include one or more `point` rows |
-| `field` | `select`, `radio`, and `multiselect` need `options`; `slider` needs `min` and `max`; default values use `value="..."` |
+| `field` | `select`, `radio`, and `multiselect` need `options`; `slider` needs `min` and `max`; default values use quoted `value="..."`, and React renders that value as the initial input value |
+
+Fields are data-capture controls. They belong inside `form`.
+
+Wrong:
+
+```txt
+dialog "Contact customer" description="Send a message to the customer.":
+  field message textarea "Message" required
+  button primary "Send" submit
+```
+
+Correct:
+
+```txt
+dialog "Contact customer" description="Send a message to the customer.":
+  form "Customer message" description="Write the message before sending.":
+    field message textarea "Message" required
+    button primary "Send" submit
+```
+
+If a submit is incomplete, do not rebuild the full original form. Ask only for the missing or invalid fields and preserve the valid submitted values in conversation state.
 
 ## `description` rule
 
@@ -177,9 +198,12 @@ Use `description="..."` ONLY on:
 
 - `card`
 - `form`
+- `alert`
 - `confirm`
+- `dialog`
 - `item`
 - `empty`
+- `chart`
 
 Do NOT invent `description` for other nodes.
 
@@ -372,7 +396,7 @@ alert "Low stock"
 
 Why it is wrong:
 
-- `alert` needs a variant, a quoted title, `:`, and nested children
+- `alert` needs a variant, a quoted title, optional `description="..."`, `:`, and nested children
 
 ### Do NOT use unquoted field defaults
 
@@ -392,7 +416,7 @@ field score slider "Score" min=0 max=10 step=1 value="7"
 
 Why it is wrong:
 
-- the current parser reads field default values from quoted `value="..."`
+- the parser reads field defaults from quoted `value="..."`, and `@toon-ui/react` uses that value as the initial rendered input value
 
 ### Do NOT leave table cells ambiguous
 

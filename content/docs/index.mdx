@@ -25,8 +25,8 @@ It is not a hard requirement. If you use another SDK, keep the same ToonUI archi
 
 | Package | Where it belongs | What it owns |
 |---|---|---|
-| `@toon-ui/core` | Server or shared non-React code | Active catalog, prompt generation, parser, validator, events, messages |
-| `@toon-ui/react` | React client code | Runtime, renderer, adapter, hooks, component props |
+| `@toon-ui/core` | Server or shared non-React code | Active catalog, prompt generation, parser, validator, events, messages. Current local release: `2.1.7` |
+| `@toon-ui/react` | React client code | Runtime, renderer, adapter, hooks, component props. Current local release: `2.1.6` |
 
 There is intentionally no umbrella package. Do not import React code on the server just to get protocol helpers.
 
@@ -69,6 +69,22 @@ const toon = createToonReactRuntime({
 ```
 
 If the AI emits a component outside the active catalog, ToonUI rejects it instead of silently rendering unsupported UI.
+
+## Data capture rules
+
+ToonUI is a DSL, so structure is part of the contract:
+
+- `field` nodes collect structured values only inside a `form`.
+- If a `dialog`, `sheet`, `popover`, or `card` needs input, nest a `form` inside that container.
+- Use `description="..."` for short guidance on supported containers such as `card`, `form`, `alert`, `confirm`, `dialog`, `item`, `empty`, and `chart`.
+- Use `value="..."` to prefill a field. Do not represent input values as nested `text`.
+
+```txt
+dialog "Contact customer" trigger="Open contact form" description="Send a message to the customer.":
+  form "Customer message" description="Write the message the customer will receive.":
+    field message textarea "Message" placeholder="Type your message..." required
+    button primary "Send message" submit
+```
 
 ## What ToonUI is not
 

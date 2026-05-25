@@ -210,7 +210,7 @@ Important rules:
 
 - `select`, `radio`, and `multiselect` need `options`
 - `slider` needs `min` and `max`
-- default field values use `value="..."` in source syntax
+- default field values use quoted `value="..."` in source syntax, and React renders them as initial input values
 - `required` should be used only when truly necessary
 
 ### `button`
@@ -260,7 +260,7 @@ badge "Active" success
 Use `alert` for important callouts.
 
 ```txt
-alert warning "Inventory mismatch":
+alert warning "Inventory mismatch" description="Review the counted quantity before saving.":
   text "The counted stock does not match the expected total."
 ```
 
@@ -292,7 +292,14 @@ toast success "Customer created successfully."
 
 ### `dialog`
 
-Use `dialog` for modal interactions.
+Use `dialog` for modal interactions. Add `description="..."` when the modal needs short context. If the dialog collects input, nest a `form`; do not put `field` directly inside `dialog`.
+
+```txt
+dialog "Contact customer" trigger="Open contact form" description="Send a message to this customer.":
+  form "Message to customer" description="Only this message will be sent.":
+    field message textarea "Message" placeholder="Type your message..." required
+    button primary "Send Message" submit
+```
 
 ### `sheet`
 

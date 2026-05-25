@@ -16,9 +16,10 @@ const toon = createToonProtocol({
 
 const system = toon.prompt;`;
 
-const modelSnippet = `form "Create product":
-  field name text "Name" required
-  field price number "Price" required
+const modelSnippet = `form "Create product" description="Fill in the product details.":
+  field name text "Name" value="Camisa roja" required
+  field price number "Price" value="34" required
+  field description textarea "Description" placeholder="Describe the product" required
   button primary "Create" submit`;
 
 const clientSnippet = `import { ToonMessage } from "@toon-ui/react";
@@ -251,7 +252,10 @@ export default function HomePage() {
             Install core for the server and react for the client.
           </h2>
           <div className="mt-8">
-            <InstallCommand command="npm install @toon-ui/core @toon-ui/react" />
+            <InstallCommand command="npm install @toon-ui/core@^2.1.7 @toon-ui/react@^2.1.6" />
+            <p className="mt-3 text-xs text-muted-foreground">
+              Current local releases: core 2.1.7 and react 2.1.6.
+            </p>
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <Button asChild>

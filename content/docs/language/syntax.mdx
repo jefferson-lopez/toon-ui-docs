@@ -18,7 +18,7 @@ If you need every edge case and parent/child rule, read [Complete Syntax Referen
 - Square brackets in docs mean optional grammar notation. Do not output literal `[` or `]`.
 
 ```md
-```toon-ui
+```txt
 card "Customer found":
   text "Jefferson Lopez Mendoza"
   button secondary "View history" reply="view-customer-history"
@@ -159,7 +159,7 @@ Rules:
 
 - `select`, `radio`, and `multiselect` require `options="A|B|C"`.
 - `slider` requires `min` and `max`.
-- default values use quoted `value="..."`.
+- default values use quoted `value="..."`, and React renders them as initial input values.
 
 ### `button reply`
 
@@ -194,7 +194,7 @@ Use:
 ### `alert`
 
 ```txt
-alert warning "Inventory mismatch":
+alert warning "Inventory mismatch" description="Review the counted quantity before saving.":
   text "The counted stock does not match the expected total."
 ```
 
@@ -224,7 +224,7 @@ Overlay nodes can include `trigger="..."`. The trigger is a label for your React
 ### `dialog`
 
 ```txt
-dialog "Customer details" trigger="Open details":
+dialog "Customer details" trigger="Open details" description="Review customer context before taking action.":
   text "This is modal content."
   button secondary "Close" reply="close-details"
 ```

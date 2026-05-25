@@ -54,6 +54,8 @@ const system = [
 
 This is the most important API in core. It creates the prompt and all protocol helpers from one active catalog.
 
+The generated prompt includes the current authoring contract: `alert` and `dialog` support `description="..."`, fields must live inside `form`, and field defaults should be emitted as quoted `value="..."`.
+
 ## API map
 
 | Area | APIs |

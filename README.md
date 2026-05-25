@@ -7,6 +7,11 @@ Standalone Next.js + Fumadocs site for ToonUI documentation.
 This site was extracted from the monorepo to reduce local development overhead.
 The goal is to keep docs and marketing work isolated from workspace-level filesystem watching.
 
+## Current package targets
+
+- `@toon-ui/core`: `^2.1.7`
+- `@toon-ui/react`: `^2.1.6`
+
 ## Local development
 
 ```bash

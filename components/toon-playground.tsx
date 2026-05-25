@@ -32,12 +32,14 @@ import {
   CheckCircle2,
   Info,
   LoaderCircle,
-  MessageSquarePlus,
+  SquarePen,
   Send,
   User,
   XCircle,
   AlertTriangle,
   CornerDownRight,
+  Copy,
+  Check,
 } from "lucide-react";
 import {
   ToonMessage,
@@ -315,7 +317,7 @@ const supportedComponents: Array<{
     name: "alert",
     description: "Important callout.",
     code: [
-      'alert success "Product deleted":',
+      'alert success "Product deleted" description="The product was removed from the catalog.":',
       '  text "Candy was deleted successfully."',
     ].join("\n"),
   },
@@ -338,7 +340,7 @@ const supportedComponents: Array<{
     name: "dialog",
     description: "Modal content with trigger label.",
     code: [
-      'dialog "Customer details" trigger="Open details":',
+      'dialog "Customer details" trigger="Open details" description="Review customer context before taking action.":',
       '  text "This is modal content."',
     ].join("\n"),
   },
@@ -645,7 +647,10 @@ function PlaygroundToonAlert({ node, children }: ToonAlertComponentProps) {
         <Icon className="size-4" />
         <span>{node.title}</span>
       </AlertTitle>
-      <AlertDescription className="grid gap-2">{children}</AlertDescription>
+      <AlertDescription className="grid gap-2">
+        {node.description ? <p>{node.description}</p> : null}
+        {children}
+      </AlertDescription>
     </Alert>
   );
 }
@@ -1793,6 +1798,7 @@ export function ToonPlayground() {
   const [tab, setTab] = useState<InspectorTab>("conversation");
   const [mobileTab, setMobileTab] = useState<PlaygroundTab>("chat");
   const [prompt, setPrompt] = useState("");
+  const [rawMarkdownCopied, setRawMarkdownCopied] = useState(false);
   const conversationScrollAreaRef = useRef<HTMLDivElement | null>(null);
   const promptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const { messages, sendMessage, setMessages, status, error } =
@@ -1832,6 +1838,21 @@ export function ToonPlayground() {
       })
       .join("\n\n---\n\n");
   }, [messages]);
+
+  const copyRawMarkdown = useCallback(async () => {
+    if (!markdownTranscript) return;
+
+    await navigator.clipboard.writeText(markdownTranscript);
+    setRawMarkdownCopied(true);
+    window.setTimeout(() => setRawMarkdownCopied(false), 1500);
+  }, [markdownTranscript]);
+
+  const resetConversation = useCallback(() => {
+    if (isSending) return;
+
+    setMessages([]);
+    setRawMarkdownCopied(false);
+  }, [isSending, setMessages]);
 
   const submitPlainPrompt = useCallback(
     async (nextPrompt: string) => {
@@ -1904,15 +1925,35 @@ export function ToonPlayground() {
 
   const inspectorPanel =
     tab === "conversation" ? (
-      <div className="h-full min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
-        <CodePanel
-          code={markdownTranscript || "No conversation yet."}
-          language="md"
-          live
-          showLanguage={false}
-          className="min-h-full border-0 bg-transparent p-0 shadow-none rounded-none"
-          contentClassName="!max-h-none overflow-visible [&>pre]:min-h-full [&>pre]:p-0"
-        />
+      <div className="relative h-full min-h-0 flex-1 overflow-hidden">
+        <div className="absolute right-3 top-3 z-20">
+          <Button
+            type="button"
+            size="icon-lg"
+            variant="ghost"
+            className="cursor-pointer disabled:cursor-not-allowed"
+            disabled={!markdownTranscript}
+            aria-label="Copy raw markdown"
+            title="Copy raw markdown"
+            onClick={() => void copyRawMarkdown()}
+          >
+            {rawMarkdownCopied ? (
+              <Check className="size-4 text-green-500" />
+            ) : (
+              <Copy className="size-4" />
+            )}
+          </Button>
+        </div>
+        <div className="h-full overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
+          <CodePanel
+            code={markdownTranscript || "No conversation yet."}
+            language="md"
+            live
+            showLanguage={false}
+            className="min-h-full border-0 bg-transparent p-0 shadow-none rounded-none"
+            contentClassName="!max-h-none overflow-visible [&>pre]:min-h-full [&>pre]:p-0 [&>pre]:pr-16"
+          />
+        </div>
       </div>
     ) : (
       <ScrollArea className="h-full min-h-0 flex-1">
@@ -1972,8 +2013,20 @@ export function ToonPlayground() {
       <div className="grid min-h-0 flex-1 gap-0 overflow-hidden lg:grid-cols-[0.92fr_1.08fr]">
         <section className="relative flex h-full min-h-0 flex-col border-b lg:border-r lg:border-b-0">
           <div className="z-10 shrink-0 bg-background">
-            <div className="hidden h-14 items-center border-b px-4 text-sm font-medium lg:flex">
-              Chat
+            <div className="hidden h-14 items-center justify-between border-b px-4 text-sm font-medium lg:flex">
+              <span>Chat</span>
+              <Button
+                type="button"
+                size="icon-lg"
+                variant="ghost"
+                className="cursor-pointer disabled:cursor-not-allowed"
+                disabled={!messages.length || isSending}
+                aria-label="Reset conversation"
+                title="Reset conversation"
+                onClick={resetConversation}
+              >
+                <SquarePen className="size-4" />
+              </Button>
             </div>
             <Tabs
               value={mobileTab}
@@ -1984,10 +2037,13 @@ export function ToonPlayground() {
                   setTab(next as InspectorTab);
                 }
               }}
-              className="lg:hidden"
+              className="relative border-b lg:hidden"
             >
-              <ScrollArea className="h-12 w-full whitespace-nowrap">
-                <TabsList variant="line" className="h-12 w-max min-w-full px-3">
+              <ScrollArea className="h-12 w-full pr-14 whitespace-nowrap">
+                <TabsList
+                  variant="line"
+                  className="h-12 w-max min-w-full border-b-0 px-3 pr-14"
+                >
                   {tabItems.map((item) => (
                     <TabsTrigger
                       key={item.id}
@@ -2001,6 +2057,18 @@ export function ToonPlayground() {
                 </TabsList>
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
+              <Button
+                type="button"
+                size="icon-lg"
+                variant="ghost"
+                className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer disabled:cursor-not-allowed"
+                disabled={!messages.length || isSending}
+                aria-label="Reset conversation"
+                title="Reset conversation"
+                onClick={resetConversation}
+              >
+                <SquarePen className="size-4" />
+              </Button>
             </Tabs>
           </div>
 

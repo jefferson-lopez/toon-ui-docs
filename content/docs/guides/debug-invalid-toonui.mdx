@@ -74,7 +74,7 @@ alert "Low stock"
 
 Why it fails:
 
-- `alert` needs variant + title + `:` + children
+- `alert` needs variant + title + optional `description="..."` + `:` + children
 
 ### 5. Unsafe content
 
@@ -106,7 +106,7 @@ row: "May 09", "$ 8,155.35", "Completed"
 
 ## Field debugging rule
 
-If a field default value is behaving strangely, check `value="..."`.
+If a field initial value is behaving strangely, check quoted `value="..."`. `@toon-ui/react` uses that parsed value as the initial rendered input value.
 
 Correct:
 
