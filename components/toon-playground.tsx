@@ -801,7 +801,12 @@ function PlaygroundToonField(props: ToonFieldComponentProps) {
   return (
     <Field className="gap-2">
       <FieldLabel htmlFor={targetId}>{props.node.label}</FieldLabel>
-      <Input {...inputProps} id={targetId} className="h-10 rounded-xl" />
+      <Input
+        {...inputProps}
+        id={targetId}
+        autoComplete="off"
+        className="h-10 rounded-xl"
+      />
     </Field>
   );
 }
